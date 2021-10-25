@@ -144,7 +144,10 @@ class MediaPlayerAdapter constructor(
     private fun reset() {
         player?.let {
             changeToUnitialized()
-            player!!.reset()
+            try {
+                player!!.reset()
+            } catch (e: Exception) {
+            }
         }
     }
 

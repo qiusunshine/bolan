@@ -3,8 +3,8 @@ plugins {
     id 'kotlin-android'
 }
 def appName = "波澜投屏"
-def versionCodeNew = 3
-def versionNameNew = "1.1.1"
+def versionCodeNew = 4
+def versionNameNew = "1.1.2"
 
 android {
     compileSdkVersion 30
@@ -52,4 +52,6 @@ dependencies {
     //stream用法
     implementation 'com.annimon:stream:1.2.1'
     implementation 'com.alibaba:fastjson:1.1.72.android'
+    //全面屏、刘海屏适配
+    implementation 'com.github.smarxpan:NotchScreenTool:0.0.1'
 }
