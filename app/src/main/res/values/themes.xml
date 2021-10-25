@@ -1,0 +1,13 @@
+<resources>
+    <style name="Theme.APP" parent="@style/Theme.Leanback">
+        <item name="android:windowFullscreen">true</item>
+        <item name="playbackControlsAutoHideTimeout">3000</item>
+        <item name="playbackControlsAutoHideTickleTimeout">5000</item>
+        <item name="detailsDescriptionTitleStyle">@style/HeaderStyle</item>
+    </style>
+
+    <style name="HeaderStyle" parent="@style/Widget.Leanback.DetailsDescriptionTitleStyle">
+        <item name="android:layout_marginTop">50dp</item>
+        <item name="android:maxLines">2</item>
+    </style>
+</resources>

@@ -1,0 +1,3 @@
+rootProject.name = "波澜投屏"
+include ':app'
+include ':VideoPlayModule-Lite', ':VideoUi', ':VideoPlayModule', ':ffmpeg'
