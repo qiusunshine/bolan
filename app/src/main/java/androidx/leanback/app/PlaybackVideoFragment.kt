@@ -43,6 +43,9 @@ class PlaybackVideoFragment : VideoSupportFragment() {
 
     fun onBackPressed(): Boolean {
         if (settingHolder != null && settingHolder!!.isShowing()) {
+            if (isControlsOverlayVisible) {
+                hideControlsOverlay(false)
+            }
             settingHolder!!.hide()
             return true
         }
@@ -310,9 +313,6 @@ class PlaybackVideoFragment : VideoSupportFragment() {
     }
 
     fun showSetting() {
-        if (isControlsOverlayVisible) {
-            hideControlsOverlay(false)
-        }
         if (settingHolder == null) {
             settingHolder =
                 SettingHolder(requireContext(), object : SettingHolder.SettingUpdateListener {

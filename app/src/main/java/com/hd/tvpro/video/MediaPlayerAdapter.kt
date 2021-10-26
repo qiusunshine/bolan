@@ -118,6 +118,7 @@ class MediaPlayerAdapter constructor(
                     callback.onCurrentPositionChanged(this@MediaPlayerAdapter)
                 }
             videoView.playbackControlView.addUpdateProgressListener(progressListener)
+            videoView.isNetworkNotify = false
             loadResizeMode()
             loadSpeed()
 //            videoView.playerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FILL
