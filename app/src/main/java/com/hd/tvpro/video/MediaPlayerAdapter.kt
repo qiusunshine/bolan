@@ -65,7 +65,7 @@ class MediaPlayerAdapter constructor(
 
 
     private fun initPlayer() {
-        if (player == null) {
+        if (player == null || player?.player == null) {
             player = VideoPlayerManager.Builder(VideoPlayerManager.TYPE_PLAY_MANUAL, videoView)
                 .setTitle("")
                 .create()
@@ -118,8 +118,32 @@ class MediaPlayerAdapter constructor(
                     callback.onCurrentPositionChanged(this@MediaPlayerAdapter)
                 }
             videoView.playbackControlView.addUpdateProgressListener(progressListener)
-            videoView.playerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FILL
+            loadResizeMode()
+            loadSpeed()
+//            videoView.playerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FILL
         }
+    }
+
+    fun loadResizeMode() {
+        when (PreferenceMgr.getInt(mContext, "screen", 0)) {
+            0 -> {
+                videoView.playerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+            }
+            1 -> {
+                videoView.playerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FILL
+            }
+            2 -> {
+                videoView.playerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH
+            }
+            3 -> {
+                videoView.playerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIXED_HEIGHT
+            }
+        }
+    }
+
+    fun loadSpeed() {
+        val speed = PreferenceMgr.getFloat(mContext, "speed", 1f)
+        player!!.setPlaybackParameters(speed, 1f)
     }
 
     /**
@@ -326,16 +350,20 @@ class MediaPlayerAdapter constructor(
         try {
             if (mMediaSourceUri != null) {
                 player?.let {
-                    it.setPlayUri(
-                        mMediaSourceUri!!,
-                        headers
-                    )
-                    val memUrl = PreferenceMgr.getString(mContext, memUrlKey, "")
-                    if (StringUtil.isNotEmpty(memUrl) && memUrl.equals(mMediaSourceUri)) {
-                        val memPos = PreferenceMgr.getLong(mContext, memPosKey, 0L)
-                        if (memPos > 0) {
-                            it.setPosition(memPos)
+                    try {
+                        it.setPlayUri(
+                            mMediaSourceUri!!,
+                            headers
+                        )
+                        val memUrl = PreferenceMgr.getString(mContext, memUrlKey, "")
+                        if (StringUtil.isNotEmpty(memUrl) && memUrl.equals(mMediaSourceUri)) {
+                            val memPos = PreferenceMgr.getLong(mContext, memPosKey, 0L)
+                            if (memPos > 0) {
+                                it.setPosition(memPos)
+                            }
                         }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
                     }
                 }
             } else {
@@ -343,7 +371,6 @@ class MediaPlayerAdapter constructor(
             }
         } catch (e: IOException) {
             e.printStackTrace()
-            throw RuntimeException(e)
         }
         //直接播放
         player!!.startPlayer<ExoUserPlayer>()

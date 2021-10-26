@@ -3,7 +3,6 @@ package androidx.leanback.app
 import android.os.Bundle
 import android.util.Log
 import android.view.*
-import androidx.leanback.media.PlaybackTransportControlGlue
 import androidx.leanback.widget.BaseGridView.OnTouchInterceptListener
 import androidx.leanback.widget.PlaybackControlsRow
 import androidx.leanback.widget.PlaybackSeekDataProvider
@@ -11,6 +10,7 @@ import chuangyuan.ycj.videolibrary.video.GestureVideoPlayer
 import chuangyuan.ycj.videolibrary.video.GestureVideoPlayer.DoubleTapArea
 import chuangyuan.ycj.videolibrary.widget.VideoPlayerView
 import com.alibaba.fastjson.JSON
+import com.hd.tvpro.setting.SettingHolder
 import com.hd.tvpro.util.PreferenceMgr
 import com.hd.tvpro.util.ScanLiveTVUtils
 import com.hd.tvpro.util.StringUtil
@@ -25,17 +25,31 @@ import com.hd.tvpro.video.model.DlanUrlDTO
 import java.util.*
 import kotlin.math.floor
 
+
 /** Handles video playback with media controls. */
 class PlaybackVideoFragment : VideoSupportFragment() {
 
-    private lateinit var mTransportControlGlue: PlaybackTransportControlGlue<MediaPlayerAdapter>
+    private lateinit var mTransportControlGlue: MyPlaybackTransportControlGlue<MediaPlayerAdapter>
     private var playData: DlanUrlDTO? = null
     private lateinit var playerAdapter: MediaPlayerAdapter
     private lateinit var videoView: VideoPlayerView
     private lateinit var gestureDetector: GestureDetector
+    private var settingHolder: SettingHolder? = null
+    private val scanLiveTVUtils = ScanLiveTVUtils()
 
     fun dispatchTouchEvent(ev: MotionEvent): Boolean {
-//        return gestureDetector.onTouchEvent(ev)
+        return false
+    }
+
+    fun onBackPressed(): Boolean {
+        if (settingHolder != null && settingHolder!!.isShowing()) {
+            settingHolder!!.hide()
+            return true
+        }
+        if (isControlsOverlayVisible) {
+            hideControlsOverlay(false)
+            return true
+        }
         return false
     }
 
@@ -51,6 +65,16 @@ class PlaybackVideoFragment : VideoSupportFragment() {
         mTransportControlGlue.playWhenPrepared()
         mTransportControlGlue.isControlsOverlayAutoHideEnabled = true
         mTransportControlGlue.isSeekEnabled = true
+        mTransportControlGlue.onKeyInterceptor =
+            object : MyPlaybackTransportControlGlue.OnKeyInterceptor {
+                override fun onKey(v: View?, keyCode: Int, event: KeyEvent): Boolean {
+                    if (keyCode == KeyEvent.KEYCODE_MENU) {
+                        showSetting()
+                        return true
+                    }
+                    return false
+                }
+            }
 
         /**
          * 支持左右键调节进度
@@ -77,7 +101,7 @@ class PlaybackVideoFragment : VideoSupportFragment() {
         parent.removeView(mVideoSurface)
         parent.addView(videoView, 0)
 
-        val scanLiveTVUtils = ScanLiveTVUtils()
+
         val lastMem = PreferenceMgr.getString(activity, "remote", null)
         if (StringUtil.isNotEmpty(lastMem)) {
             scanLiveTVUtils.checkLastMem(lastMem, {
@@ -88,20 +112,31 @@ class PlaybackVideoFragment : VideoSupportFragment() {
                     PreferenceMgr.put(context, "remote", it)
                     startCheckPlayUrl(it)
                 }, {
-                    ToastMgr.longCenter(activity, "扫描远程设备失败，请确认在一个局域网内")
+                    ToastMgr.longCenter(activity, "扫描失败，请打开海阔视界的网页投屏")
                     //再给上次记录的地址一次机会，可能忘记打开手机
                     startCheckPlayUrl(lastMem)
                 })
             })
         } else {
-            ToastMgr.shortBottomCenter(activity, "开始扫描远程设备，请稍候")
-            scanLiveTVUtils.scan(activity, {
-                PreferenceMgr.put(context, "remote", it)
-                startCheckPlayUrl(it)
-            }, {
-                ToastMgr.longCenter(activity, "扫描远程设备失败，请确认在一个局域网内")
-            })
+            startScan(false)
         }
+    }
+
+    private fun startScan(notify: Boolean) {
+        ToastMgr.shortBottomCenter(activity, "开始扫描远程设备，请稍候")
+        scanLiveTVUtils.scan(activity, {
+            PreferenceMgr.put(context, "remote", it)
+            if (notify) {
+                ToastMgr.shortBottomCenter(
+                    context, "已扫描到设备：" +
+                            it.replace(ScanLiveTVUtils.HTTP, "")
+                                .replace(ScanLiveTVUtils.PORT, "")
+                )
+            }
+            startCheckPlayUrl(it)
+        }, {
+            ToastMgr.longCenter(activity, "扫描失败，请打开海阔视界的网页投屏")
+        })
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -116,6 +151,11 @@ class PlaybackVideoFragment : VideoSupportFragment() {
                     tickle()
                 }
                 return super.onSingleTapConfirmed(e)
+            }
+
+            override fun onLongPress(e: MotionEvent?) {
+                showSetting()
+                super.onLongPress(e)
             }
 
             override fun onDoubleTap(e: MotionEvent?): Boolean {
@@ -145,7 +185,11 @@ class PlaybackVideoFragment : VideoSupportFragment() {
     override fun onResume() {
         super.onResume()
         val mOnTouchInterceptListener =
-            OnTouchInterceptListener { event -> gestureDetector.onTouchEvent(event) || onInterceptInputEvent(event) }
+            OnTouchInterceptListener { event ->
+                gestureDetector.onTouchEvent(event) || onInterceptInputEvent(
+                    event
+                )
+            }
         verticalGridView.setOnTouchInterceptListener(mOnTouchInterceptListener)
     }
 
@@ -263,6 +307,35 @@ class PlaybackVideoFragment : VideoSupportFragment() {
 
     override fun getSurfaceView(): SurfaceView {
         return videoView?.playerView?.videoSurfaceView as SurfaceView
+    }
+
+    fun showSetting() {
+        if (isControlsOverlayVisible) {
+            hideControlsOverlay(false)
+        }
+        if (settingHolder == null) {
+            settingHolder =
+                SettingHolder(requireContext(), object : SettingHolder.SettingUpdateListener {
+                    override fun update(option: SettingHolder.Option) {
+                        when (option) {
+                            SettingHolder.Option.SCREEN -> {
+                                playerAdapter.loadResizeMode()
+                            }
+                            SettingHolder.Option.SPEED -> {
+                                playerAdapter.loadSpeed()
+                            }
+                            SettingHolder.Option.RESET -> {
+                                PreferenceMgr.remove(activity, "remote")
+                                startScan(true)
+                            }
+                        }
+                    }
+                })
+        }
+        if (settingHolder!!.isShowing()) {
+            return
+        }
+        settingHolder!!.show(videoView)
     }
 
     companion object {

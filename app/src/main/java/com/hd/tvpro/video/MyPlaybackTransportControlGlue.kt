@@ -1,6 +1,8 @@
 package com.hd.tvpro.video
 
 import android.content.Context
+import android.view.KeyEvent
+import android.view.View
 import androidx.leanback.media.PlaybackBannerControlGlue
 import androidx.leanback.media.PlaybackTransportControlGlue
 import androidx.leanback.media.PlayerAdapter
@@ -19,6 +21,7 @@ class MyPlaybackTransportControlGlue<T : PlayerAdapter?>(context: Context?, impl
     ) {
     private var mSkipNextAction: SkipNextAction? = null
     private var mSkipPreviousAction: SkipPreviousAction? = null
+    var onKeyInterceptor: OnKeyInterceptor? = null
 
     override fun onCreatePrimaryActions(primaryActionsAdapter: ArrayObjectAdapter) {
         super.onCreatePrimaryActions(primaryActionsAdapter)
@@ -36,4 +39,20 @@ class MyPlaybackTransportControlGlue<T : PlayerAdapter?>(context: Context?, impl
             mSkipNextAction = null
         }
     }
+
+    /**
+     * Handles key events and returns true if handled.  A subclass may override this to provide
+     * additional support.
+     */
+    override fun onKey(v: View?, keyCode: Int, event: KeyEvent): Boolean {
+        if(onKeyInterceptor != null && onKeyInterceptor!!.onKey(v, keyCode, event)){
+            return true
+        }
+        return super.onKey(v, keyCode, event)
+    }
+
+    interface OnKeyInterceptor {
+        fun onKey(v: View?, keyCode: Int, event: KeyEvent): Boolean
+    }
+
 }

@@ -27,8 +27,8 @@ import okhttp3.OkHttpClient;
 public class ScanLiveTVUtils {
     private static final String TAG = "ScanLiveTVUtils";
     public static boolean isScanning = false;
-    private static final String PORT = ":52020";
-    private static final String HTTP = "http://";
+    public static final String PORT = ":52020";
+    public static final String HTTP = "http://";
     private static final String PLAY_URL = "/playUrl";
 
     private final OkHttpClient okHttpClient;

@@ -39,8 +39,17 @@ class MainActivity : FragmentActivity() {
 
     override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
         if (ev != null && fragment.dispatchTouchEvent(ev)) {
+            //fragment拦截了
             return true
         }
         return super.dispatchTouchEvent(ev)
+    }
+
+    override fun onBackPressed() {
+        if (fragment.onBackPressed()) {
+            //fragment拦截了
+            return
+        }
+        super.onBackPressed()
     }
 }
