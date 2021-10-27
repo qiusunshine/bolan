@@ -3,8 +3,8 @@ plugins {
     id 'kotlin-android'
 }
 def appName = "波澜投屏"
-def versionCodeNew = 5
-def versionNameNew = "1.1.3"
+def versionCodeNew = 7
+def versionNameNew = "1.1.5"
 
 android {
     compileSdkVersion 30
@@ -17,6 +17,9 @@ android {
         versionName versionNameNew
 
         multiDexEnabled true
+        ndk {
+            abiFilters "armeabi-v7a"
+        }
     }
 
     buildTypes {
@@ -33,7 +36,6 @@ android {
             outputFileName = fileName
         }
     }
-
 }
 
 dependencies {
@@ -55,4 +57,6 @@ dependencies {
     //全面屏、刘海屏适配
     implementation 'com.github.smarxpan:NotchScreenTool:0.0.1'
     implementation "androidx.multidex:multidex:2.0.1"
+    //协程
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.3.9")
 }

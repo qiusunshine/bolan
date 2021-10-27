@@ -1,11 +1,13 @@
 package com.hd.tvpro
 
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.view.MotionEvent
 import android.view.View
 import androidx.fragment.app.FragmentActivity
 import androidx.leanback.app.PlaybackVideoFragment
+import com.geniusgithub.mediarender.service.MediaRenderService
 import com.smarx.notchlib.NotchScreenManager
 
 /**
@@ -24,6 +26,15 @@ class MainActivity : FragmentActivity() {
             supportFragmentManager.beginTransaction()
                 .replace(android.R.id.content, fragment)
                 .commit()
+        }
+        val intent = Intent(
+            this,
+            MediaRenderService::class.java
+        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(intent)
+        } else {
+            startService(intent)
         }
     }
 

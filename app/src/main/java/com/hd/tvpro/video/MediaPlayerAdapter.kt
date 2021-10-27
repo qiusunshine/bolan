@@ -22,6 +22,7 @@ import com.hd.tvpro.util.PreferenceMgr
 import com.hd.tvpro.util.StringUtil
 import java.io.IOException
 import java.util.*
+import kotlin.collections.ArrayList
 
 /**
  * 作者：By 15968
@@ -37,6 +38,7 @@ class MediaPlayerAdapter constructor(
     var mSurfaceHolderGlueHost: SurfaceHolderGlueHost? = null
     val mRunnable: Runnable = object : Runnable {
         override fun run() {
+            //这里更新太频繁，外部监听器暂时不管
             callback.onCurrentPositionChanged(this@MediaPlayerAdapter)
             mHandler.postDelayed(this, getProgressUpdatingInterval().toLong())
         }
@@ -48,6 +50,8 @@ class MediaPlayerAdapter constructor(
     var headers: Map<String, String>? = null
     var mHasDisplay = false
     var mBufferedProgress: Long = 0
+
+    private var listeners: MutableList<Callback> = ArrayList()
 
     private val videoPlayerSurfaceHolderCallback = object : SurfaceHolder.Callback {
         override fun surfaceCreated(surfaceHolder: SurfaceHolder) {
@@ -63,8 +67,12 @@ class MediaPlayerAdapter constructor(
         }
     }
 
+    fun addListener(listener: Callback) {
+        listeners.add(listener)
+    }
 
     private fun initPlayer() {
+        checkListener()
         if (player == null || player?.player == null) {
             player = VideoPlayerManager.Builder(VideoPlayerManager.TYPE_PLAY_MANUAL, videoView)
                 .setTitle("")
@@ -72,36 +80,47 @@ class MediaPlayerAdapter constructor(
             val videoInfoListener = object : VideoInfoListener {
                 override fun onPlayStart(currPosition: Long) {
                     mInitialized = true
-                    callback.onBufferingStateChanged(this@MediaPlayerAdapter, false)
-                    callback.onPreparedStateChanged(this@MediaPlayerAdapter)
-                    callback.onPlayStateChanged(this@MediaPlayerAdapter)
+                    listeners.forEach {
+                        it.onBufferingStateChanged(this@MediaPlayerAdapter, false)
+                        it.onPreparedStateChanged(this@MediaPlayerAdapter)
+                    }
                 }
 
                 override fun onLoadingChanged() {
-                    callback.onBufferingStateChanged(this@MediaPlayerAdapter, true)
+                    listeners.forEach {
+                        it.onBufferingStateChanged(this@MediaPlayerAdapter, true)
+                    }
                 }
 
                 override fun isPlaying(playWhenReady: Boolean) {
-                    callback.onPlayStateChanged(this@MediaPlayerAdapter)
+                    listeners.forEach {
+                        it.onPlayStateChanged(this@MediaPlayerAdapter)
+                    }
                 }
 
                 override fun onPlayerError(e: ExoPlaybackException?) {
-                    callback.onError(this@MediaPlayerAdapter, 0, e!!.message)
+                    listeners.forEach {
+                        it.onError(this@MediaPlayerAdapter, 0, e!!.message)
+                    }
                 }
 
                 override fun onPlayEnd() {
-                    callback.onPlayCompleted(this@MediaPlayerAdapter)
+                    listeners.forEach {
+                        it.onPlayCompleted(this@MediaPlayerAdapter)
+                    }
                 }
             }
 
             val listener = object : Player.Listener {
                 override fun onVideoSizeChanged(videoSize: VideoSize) {
                     super.onVideoSizeChanged(videoSize)
-                    callback.onVideoSizeChanged(
-                        this@MediaPlayerAdapter,
-                        videoSize.width,
-                        videoSize.height
-                    )
+                    listeners.forEach {
+                        it.onVideoSizeChanged(
+                            this@MediaPlayerAdapter,
+                            videoSize.width,
+                            videoSize.height
+                        )
+                    }
                 }
 
             }
@@ -113,15 +132,23 @@ class MediaPlayerAdapter constructor(
             val progressListener =
                 AnimUtils.UpdateProgressListener { position, bufferedPosition, duration ->
                     mBufferedProgress = bufferedPosition
-                    callback.onBufferedPositionChanged(this@MediaPlayerAdapter)
-                    callback.onDurationChanged(this@MediaPlayerAdapter)
-                    callback.onCurrentPositionChanged(this@MediaPlayerAdapter)
+                    listeners.forEach {
+                        it.onBufferedPositionChanged(this@MediaPlayerAdapter)
+                        it.onDurationChanged(this@MediaPlayerAdapter)
+                        it.onCurrentPositionChanged(this@MediaPlayerAdapter)
+                    }
                 }
             videoView.playbackControlView.addUpdateProgressListener(progressListener)
             videoView.isNetworkNotify = false
             loadResizeMode()
             loadSpeed()
 //            videoView.playerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FILL
+        }
+    }
+
+    private fun checkListener() {
+        if (listeners.isEmpty() || (callback != null && !listeners.contains(callback))) {
+            listeners.add(callback)
         }
     }
 
@@ -179,7 +206,9 @@ class MediaPlayerAdapter constructor(
     private fun changeToUnitialized() {
         if (player != null) {
             if (mHasDisplay) {
-                callback.onPreparedStateChanged(this@MediaPlayerAdapter)
+                listeners.forEach {
+                    it.onPreparedStateChanged(this@MediaPlayerAdapter)
+                }
             }
         }
     }
@@ -238,13 +267,15 @@ class MediaPlayerAdapter constructor(
         player?.let {
             it.player.setVideoSurfaceHolder(surfaceHolder)
         }
-        if (mHasDisplay) {
-            if (player != null) {
-                callback.onPreparedStateChanged(this@MediaPlayerAdapter)
-            }
-        } else {
-            if (player != null) {
-                callback.onPreparedStateChanged(this@MediaPlayerAdapter)
+        listeners.forEach {
+            if (mHasDisplay) {
+                if (player != null) {
+                    it.onPreparedStateChanged(this@MediaPlayerAdapter)
+                }
+            } else {
+                if (player != null) {
+                    it.onPreparedStateChanged(this@MediaPlayerAdapter)
+                }
             }
         }
     }
@@ -285,15 +316,19 @@ class MediaPlayerAdapter constructor(
                 return
             }
             it.setStartOrPause(true)
-            callback.onPlayStateChanged(this@MediaPlayerAdapter)
-            callback.onCurrentPositionChanged(this@MediaPlayerAdapter)
+            listeners.forEach {
+                it.onPlayStateChanged(this@MediaPlayerAdapter)
+                it.onCurrentPositionChanged(this@MediaPlayerAdapter)
+            }
         }
     }
 
     override fun pause() {
         if (isPlaying && player != null) {
             player!!.setStartOrPause(false)
-            callback.onPlayStateChanged(this@MediaPlayerAdapter)
+            listeners.forEach {
+                it.onPlayStateChanged(this@MediaPlayerAdapter)
+            }
         }
     }
 
