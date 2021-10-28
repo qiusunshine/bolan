@@ -9,6 +9,8 @@ import androidx.fragment.app.FragmentActivity
 import androidx.leanback.app.PlaybackVideoFragment
 import com.pngcui.skyworth.dlna.service.MediaRenderService
 import com.smarx.notchlib.NotchScreenManager
+import kotlinx.coroutines.*
+import kotlin.coroutines.EmptyCoroutineContext
 
 /**
  * Loads [MainFragment].
@@ -32,10 +34,18 @@ class MainActivity : FragmentActivity() {
             this,
             MediaRenderService::class.java
         )
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(intent)
-        } else {
-            startService(intent)
+        val scope = CoroutineScope(EmptyCoroutineContext)
+        scope.launch(Dispatchers.IO) {
+            delay(1000)
+            withContext(Dispatchers.Main) {
+                if (!isFinishing) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        startForegroundService(intent)
+                    } else {
+                        startService(intent)
+                    }
+                }
+            }
         }
     }
 

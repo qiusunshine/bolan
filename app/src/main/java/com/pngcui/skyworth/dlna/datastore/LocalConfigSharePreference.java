@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 
 import com.hd.tvpro.R;
+import com.hd.tvpro.util.StringUtil;
 
 public class LocalConfigSharePreference {
 
@@ -21,7 +22,12 @@ public class LocalConfigSharePreference {
 
     public static String getDevName(Context context) {
         SharedPreferences sharedPreferences = context.getSharedPreferences(preference_name, 0);
-        return sharedPreferences.getString(dev_name, context.getResources().getString(R.string.app_name));
+        String key = sharedPreferences.getString(dev_name, null);
+        if (StringUtil.isEmpty(key)) {
+            key = context.getResources().getString(R.string.app_name) + "-" + StringUtil.genRandomPwd(6, true);
+            commintDevName(context, key);
+        }
+        return key;
     }
 
 }
