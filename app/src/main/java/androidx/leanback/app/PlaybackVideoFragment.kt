@@ -149,7 +149,7 @@ class PlaybackVideoFragment : VideoSupportFragment(),
             override fun onPreparedStateChanged(adapter: PlayerAdapter?) {
                 if (playerAdapter.duration > 0) {
                     DLNAGenaEventBrocastFactory.sendDurationEvent(
-                        context,
+                        App.INSTANCE,
                         playerAdapter.duration.toInt()
                     )
                 }
@@ -157,9 +157,9 @@ class PlaybackVideoFragment : VideoSupportFragment(),
 
             override fun onPlayStateChanged(adapter: PlayerAdapter?) {
                 if (playerAdapter.isPlaying) {
-                    DLNAGenaEventBrocastFactory.sendPlayStateEvent(context)
+                    DLNAGenaEventBrocastFactory.sendPlayStateEvent(App.INSTANCE)
                 } else {
-                    DLNAGenaEventBrocastFactory.sendPauseStateEvent(context)
+                    DLNAGenaEventBrocastFactory.sendPauseStateEvent(App.INSTANCE)
                 }
             }
         })
@@ -174,11 +174,11 @@ class PlaybackVideoFragment : VideoSupportFragment(),
                         }
                         withContext(Dispatchers.Main) {
                             DLNAGenaEventBrocastFactory.sendDurationEvent(
-                                context,
+                                App.INSTANCE,
                                 playerAdapter.duration.toInt()
                             )
                             DLNAGenaEventBrocastFactory.sendSeekEvent(
-                                context,
+                                App.INSTANCE,
                                 playerAdapter.currentPosition.toInt()
                             )
                         }
@@ -228,6 +228,9 @@ class PlaybackVideoFragment : VideoSupportFragment(),
             }
 
             override fun onLongPress(e: MotionEvent?) {
+                if (isControlsOverlayVisible) {
+                    hideControlsOverlay(false)
+                }
                 showSetting()
                 super.onLongPress(e)
             }
@@ -273,6 +276,9 @@ class PlaybackVideoFragment : VideoSupportFragment(),
                 mTransportControlGlue.title = "\n" + it.title
                 mTransportControlGlue.subtitle = it.url
                 playerAdapter.setDataSource(it.url, it.headers)
+                if (isControlsOverlayVisible) {
+                    hideControlsOverlay(false)
+                }
             }
         }
     }

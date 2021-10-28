@@ -46,7 +46,7 @@ public class DlnaUtils {
 
         String[] seektime = data.split("=");
         if (2 != seektime.length) {
-            return seekPos;
+            return convertSeekRelTimeToMs(data);
         }
         String timetype = seektime[0];
         String position = seektime[1];
@@ -55,8 +55,6 @@ public class DlnaUtils {
         } else {
             log.e("timetype = " + timetype + ", position = " + position);
         }
-
-
         return seekPos;
     }
 
