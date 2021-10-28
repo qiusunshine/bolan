@@ -7,7 +7,7 @@ import android.view.MotionEvent
 import android.view.View
 import androidx.fragment.app.FragmentActivity
 import androidx.leanback.app.PlaybackVideoFragment
-import com.geniusgithub.mediarender.service.MediaRenderService
+import com.pngcui.skyworth.dlna.service.MediaRenderService
 import com.smarx.notchlib.NotchScreenManager
 
 /**
@@ -27,6 +27,7 @@ class MainActivity : FragmentActivity() {
                 .replace(android.R.id.content, fragment)
                 .commit()
         }
+
         val intent = Intent(
             this,
             MediaRenderService::class.java

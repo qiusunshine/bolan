@@ -3,15 +3,16 @@ package com.hd.tvpro.app
 import android.app.Application
 import android.content.Context
 import androidx.multidex.MultiDex
-import com.geniusgithub.mediarender.device.DeviceInfo
-import com.geniusgithub.mediarender.device.DeviceUpdateBrocastFactory
-import com.geniusgithub.mediarender.device.ItatisticsEvent
-import com.geniusgithub.mediarender.util.CommonLog
-import com.geniusgithub.mediarender.util.LogFactory
 import com.hd.tvpro.constants.TimeConstants
 import com.lzy.okgo.OkGo
 import com.lzy.okgo.https.HttpsUtils
 import com.lzy.okgo.model.HttpHeaders
+import com.pngcui.skyworth.dlna.device.DeviceInfo
+import com.pngcui.skyworth.dlna.device.DeviceUpdateBrocastFactory
+import com.pngcui.skyworth.dlna.device.ItatisticsEvent
+import com.pngcui.skyworth.dlna.util.CommonLog
+import com.pngcui.skyworth.dlna.util.LogFactory
+import com.umeng.commonsdk.UMConfigure
 import okhttp3.OkHttpClient
 import java.util.*
 import java.util.concurrent.TimeUnit
@@ -47,6 +48,18 @@ open class App : Application(), ItatisticsEvent {
         OkGo.getInstance().init(this).setOkHttpClient(builder.build())
             .setRetryCount(1)
             .addCommonHeaders(headers)
+        //crash监测
+        try {
+            UMConfigure.preInit(this, "616f8498e014255fcb521858", "tvpro")
+            UMConfigure.init(
+                this,
+                "616f8498e014255fcb521858",
+                "tvpro",
+                UMConfigure.DEVICE_TYPE_PHONE,
+                null
+            )
+        } catch (e: Throwable) {
+        }
     }
 
     override fun attachBaseContext(base: Context?) {
@@ -63,6 +76,10 @@ open class App : Application(), ItatisticsEvent {
     open fun setDevStatus(flag: Boolean) {
         mDeviceInfo.status = flag
         DeviceUpdateBrocastFactory.sendDevUpdateBrocast(this)
+    }
+
+    fun hasDlanConnect(): Boolean {
+        return mDeviceInfo.status
     }
 
     open fun getDevInfo(): DeviceInfo? {

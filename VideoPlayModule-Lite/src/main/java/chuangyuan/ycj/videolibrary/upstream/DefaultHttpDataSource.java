@@ -629,6 +629,10 @@ public class DefaultHttpDataSource extends BaseDataSource implements HttpDataSou
     connection.setConnectTimeout(connectTimeoutMillis);
     connection.setReadTimeout(readTimeoutMillis);
 
+    if (connection instanceof HttpsURLConnection) {
+      ((HttpsURLConnection) connection).setSSLSocketFactory(sslParams.sSLSocketFactory);
+    }
+
     Map<String, String> requestHeaders = new HashMap<>();
     if (defaultRequestProperties != null) {
       requestHeaders.putAll(defaultRequestProperties.getSnapshot());

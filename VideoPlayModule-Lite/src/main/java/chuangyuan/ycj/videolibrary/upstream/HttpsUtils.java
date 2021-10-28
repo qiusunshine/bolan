@@ -84,8 +84,9 @@ public class HttpsUtils {
             }
 
             SSLContext sslContext = SSLContext.getInstance("TLS");
+
             sslContext.init(keyManagers, new TrustManager[]{manager}, (SecureRandom)null);
-            sslParams.sSLSocketFactory = sslContext.getSocketFactory();
+            sslParams.sSLSocketFactory = new SSLSocketFactoryCompat(manager);
             sslParams.trustManager = manager;
             return sslParams;
         } catch (NoSuchAlgorithmException var9) {

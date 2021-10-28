@@ -3,8 +3,8 @@ plugins {
     id 'kotlin-android'
 }
 def appName = "波澜投屏"
-def versionCodeNew = 7
-def versionNameNew = "1.1.5"
+def versionCodeNew = 10
+def versionNameNew = "1.1.7"
 
 android {
     compileSdkVersion 30
@@ -59,4 +59,7 @@ dependencies {
     implementation "androidx.multidex:multidex:2.0.1"
     //协程
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.3.9")
+    //统计和crash
+    implementation  'com.umeng.umsdk:common:9.4.4'
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
 }

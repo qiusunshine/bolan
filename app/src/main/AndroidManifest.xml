@@ -4,13 +4,17 @@
     package="com.hd.tvpro">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE"/>
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
 
 
     <uses-feature
@@ -44,8 +48,7 @@
             </intent-filter>
         </activity>
 
-        <service
-            android:name="com.geniusgithub.mediarender.service.MediaRenderService">
+        <service android:name="com.pngcui.skyworth.dlna.service.MediaRenderService">
             <intent-filter>
                 <action android:name="com.geniusgithub.start.engine" />
                 <action android:name="com.geniusgithub.restart.engine" />

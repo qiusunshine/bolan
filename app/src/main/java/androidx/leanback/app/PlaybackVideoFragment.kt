@@ -11,9 +11,6 @@ import chuangyuan.ycj.videolibrary.video.GestureVideoPlayer
 import chuangyuan.ycj.videolibrary.video.GestureVideoPlayer.DoubleTapArea
 import chuangyuan.ycj.videolibrary.widget.VideoPlayerView
 import com.alibaba.fastjson.JSON
-import com.geniusgithub.mediarender.center.DLNAGenaEventBrocastFactory
-import com.geniusgithub.mediarender.center.DlnaMediaModel
-import com.geniusgithub.mediarender.center.MediaControlBrocastFactory
 import com.hd.tvpro.app.App
 import com.hd.tvpro.setting.SettingHolder
 import com.hd.tvpro.util.PreferenceMgr
@@ -27,6 +24,9 @@ import com.hd.tvpro.video.MediaPlayerAdapter
 import com.hd.tvpro.video.MyPlaybackTransportControlGlue
 import com.hd.tvpro.video.VideoDataHelper
 import com.hd.tvpro.video.model.DlanUrlDTO
+import com.pngcui.skyworth.dlna.center.DLNAGenaEventBrocastFactory
+import com.pngcui.skyworth.dlna.center.DlnaMediaModel
+import com.pngcui.skyworth.dlna.center.MediaControlBrocastFactory
 import kotlinx.coroutines.*
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe

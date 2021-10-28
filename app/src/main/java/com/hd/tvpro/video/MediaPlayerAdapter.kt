@@ -14,15 +14,17 @@ import chuangyuan.ycj.videolibrary.video.ManualPlayer
 import chuangyuan.ycj.videolibrary.video.VideoPlayerManager
 import chuangyuan.ycj.videolibrary.widget.VideoPlayerView
 import com.google.android.exoplayer2.ExoPlaybackException
+import com.google.android.exoplayer2.PlaybackException
 import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.ui.AnimUtils
 import com.google.android.exoplayer2.ui.AspectRatioFrameLayout
 import com.google.android.exoplayer2.video.VideoSize
 import com.hd.tvpro.util.PreferenceMgr
 import com.hd.tvpro.util.StringUtil
-import java.io.IOException
+import java.io.*
 import java.util.*
 import kotlin.collections.ArrayList
+
 
 /**
  * 作者：By 15968
@@ -99,9 +101,7 @@ class MediaPlayerAdapter constructor(
                 }
 
                 override fun onPlayerError(e: ExoPlaybackException?) {
-                    listeners.forEach {
-                        it.onError(this@MediaPlayerAdapter, 0, e!!.message)
-                    }
+                    onError(e)
                 }
 
                 override fun onPlayEnd() {
@@ -110,6 +110,13 @@ class MediaPlayerAdapter constructor(
                     }
                 }
             }
+
+            player!!.player.addListener(object : Player.Listener {
+                override fun onPlayerError(error: PlaybackException) {
+                    super.onPlayerError(error)
+                    onError(error)
+                }
+            })
 
             val listener = object : Player.Listener {
                 override fun onVideoSizeChanged(videoSize: VideoSize) {
@@ -143,6 +150,15 @@ class MediaPlayerAdapter constructor(
             loadResizeMode()
             loadSpeed()
 //            videoView.playerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FILL
+        }
+    }
+
+    private fun onError(e: Exception?) {
+        e?.let {
+            e.printStackTrace()
+            listeners.forEach {
+                it.onError(this@MediaPlayerAdapter, 0, e.message)
+            }
         }
     }
 

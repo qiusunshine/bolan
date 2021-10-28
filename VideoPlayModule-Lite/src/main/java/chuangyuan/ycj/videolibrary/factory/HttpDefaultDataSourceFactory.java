@@ -3,7 +3,6 @@ package chuangyuan.ycj.videolibrary.factory;
 import android.content.Context;
 
 import com.google.android.exoplayer2.upstream.DataSource;
-import com.google.android.exoplayer2.upstream.DefaultHttpDataSource;
 import com.google.android.exoplayer2.util.Util;
 
 import java.util.HashMap;
@@ -11,6 +10,7 @@ import java.util.Map;
 
 import chuangyuan.ycj.videolibrary.upstream.DefaultDataSource;
 import chuangyuan.ycj.videolibrary.upstream.DefaultDataSourceFactory;
+import chuangyuan.ycj.videolibrary.upstream.DefaultHttpDataSource;
 
 /**
  * 作者：By 15968
