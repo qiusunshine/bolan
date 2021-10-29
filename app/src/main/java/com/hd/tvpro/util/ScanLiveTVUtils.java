@@ -36,6 +36,7 @@ public class ScanLiveTVUtils {
     private AtomicInteger counter;
     private Consumer<String> okListener;
     private Consumer<String> failListener;
+    private long start;
 
     public ScanLiveTVUtils() {
         OkHttpClient.Builder builder = new OkHttpClient.Builder();
@@ -60,6 +61,7 @@ public class ScanLiveTVUtils {
      * @return void
      */
     public void scan(Context context, Consumer<String> okListener, Consumer<String> failListener) {
+        start = System.currentTimeMillis();
         isScanning = true;
         this.okListener = okListener;
         this.failListener = failListener;
@@ -120,11 +122,13 @@ public class ScanLiveTVUtils {
                                     OkGo.cancelAll(okHttpClient);
                                     isScanning = false;
                                     okListener.accept(url);
+                                    Log.d(TAG, "扫描耗时: " + (System.currentTimeMillis() - start));
                                     return;
                                 }
                             }
                             int now = counter.decrementAndGet();
                             if (now <= 0) {
+                                Log.d(TAG, "扫描耗时: " + (System.currentTimeMillis() - start));
                                 failListener.accept("");
                             }
                         }
@@ -134,6 +138,7 @@ public class ScanLiveTVUtils {
                             int now = counter.decrementAndGet();
                             if (now <= 0) {
                                 isScanning = false;
+                                Log.d(TAG, "扫描耗时: " + (System.currentTimeMillis() - start));
                                 failListener.accept("");
                             }
                             super.onError(response);

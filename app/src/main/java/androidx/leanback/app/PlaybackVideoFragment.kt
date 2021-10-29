@@ -17,7 +17,6 @@ import com.hd.tvpro.util.PreferenceMgr
 import com.hd.tvpro.util.ScanLiveTVUtils
 import com.hd.tvpro.util.StringUtil
 import com.hd.tvpro.util.ToastMgr
-import com.hd.tvpro.util.async.ThreadTool
 import com.hd.tvpro.util.http.HttpListener
 import com.hd.tvpro.util.http.HttpUtils
 import com.hd.tvpro.video.MediaPlayerAdapter
@@ -47,8 +46,7 @@ class PlaybackVideoFragment : VideoSupportFragment(),
     private var settingHolder: SettingHolder? = null
     private val scanLiveTVUtils = ScanLiveTVUtils()
     private lateinit var mMediaControlBorcastFactory: MediaControlBrocastFactory
-    private val mMediaInfo = DlnaMediaModel()
-    private var job: Job? = null
+    private val scope = CoroutineScope(EmptyCoroutineContext)
 
     fun dispatchTouchEvent(ev: MotionEvent): Boolean {
         return false
@@ -164,8 +162,7 @@ class PlaybackVideoFragment : VideoSupportFragment(),
             }
         })
         //定时器
-        val scope = CoroutineScope(EmptyCoroutineContext)
-        job = scope.launch {
+        scope.launch {
             while (true) {
                 try {
                     if (App.INSTANCE.getDevInfo()?.status == true) {
@@ -343,7 +340,7 @@ class PlaybackVideoFragment : VideoSupportFragment(),
             val lastMem = PreferenceMgr.getString(activity, "remote", null)
             lastMem?.let {
                 ToastMgr.shortBottomCenter(context, "播放下一集")
-                ThreadTool.executeNewTask {
+                scope.launch(Dispatchers.IO) {
                     Log.d(TAG, "playNext: ${it}/playNext")
                     HttpUtils.get("${it}/playNext", object : HttpListener {
                         override fun success(body: String?) {
@@ -373,14 +370,10 @@ class PlaybackVideoFragment : VideoSupportFragment(),
     }
 
     private fun startCheckPlayUrl(url: String) {
-        ThreadTool.executeNewTask {
+        scope.launch(Dispatchers.IO) {
             HttpUtils.get("$url/playUrl?enhance=true", object : HttpListener {
                 override fun success(body: String?) {
-                    activity?.runOnUiThread {
-                        view?.postDelayed({
-                            startCheckPlayUrl(url)
-                        }, 1000)
-                    }
+                    restartCheck(url)
                     if (playData == null) {
                         playData = JSON.parseObject(body, DlanUrlDTO::class.java)
 
@@ -398,13 +391,20 @@ class PlaybackVideoFragment : VideoSupportFragment(),
 
                 override fun failed(msg: String?) {
                     //ignore
-                    activity?.runOnUiThread {
-                        view?.postDelayed({
-                            startCheckPlayUrl(url)
-                        }, 1000)
-                    }
+                    restartCheck(url)
                 }
             })
+        }
+    }
+
+    private fun restartCheck(url: String) {
+        if (activity?.isFinishing == false) {
+            scope.launch(Dispatchers.IO) {
+                delay(1000)
+                if (activity?.isFinishing == false) {
+                    startCheckPlayUrl(url)
+                }
+            }
         }
     }
 
@@ -471,7 +471,7 @@ class PlaybackVideoFragment : VideoSupportFragment(),
     }
 
     override fun onDestroyView() {
-        job?.cancel()
+        scope.cancel()
         super.onDestroyView()
     }
 }

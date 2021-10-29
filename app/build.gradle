@@ -3,8 +3,8 @@ plugins {
     id 'kotlin-android'
 }
 def appName = "波澜投屏"
-def versionCodeNew = 10
-def versionNameNew = "1.1.7"
+def versionCodeNew = 12
+def versionNameNew = "1.1.8"
 
 android {
     compileSdkVersion 30
