@@ -48,6 +48,7 @@ class PlaybackVideoFragment : VideoSupportFragment(),
     private val scanLiveTVUtils = ScanLiveTVUtils()
     private lateinit var mMediaControlBorcastFactory: MediaControlBrocastFactory
     private val scope = CoroutineScope(EmptyCoroutineContext)
+    private var useDlan = false
 
     fun dispatchTouchEvent(ev: MotionEvent): Boolean {
         return false
@@ -267,6 +268,7 @@ class PlaybackVideoFragment : VideoSupportFragment(),
         if (activity?.isFinishing == true) {
             return
         }
+        useDlan = true
         playData = DlanUrlDTO()
         playData?.apply {
             url = media.url
@@ -335,6 +337,10 @@ class PlaybackVideoFragment : VideoSupportFragment(),
 
     private val videoDataHelper = object : VideoDataHelper {
         override fun next() {
+            if (useDlan) {
+                ToastMgr.shortBottomCenter(context, "正在使用DLAN投屏，手机上操作吧~")
+                return
+            }
             val lastMem = PreferenceMgr.getString(activity, "remote", null)
             lastMem?.let {
                 ToastMgr.shortBottomCenter(context, "播放下一集")
@@ -368,9 +374,15 @@ class PlaybackVideoFragment : VideoSupportFragment(),
     }
 
     private fun startCheckPlayUrl(url: String) {
+        if (useDlan) {
+            return
+        }
         scope.launch(Dispatchers.IO) {
             HttpUtils.get("$url/playUrl?enhance=true", object : HttpListener {
                 override fun success(body: String?) {
+                    if (useDlan) {
+                        return
+                    }
                     restartCheck(url)
                     scope.launch(Dispatchers.Main) {
                         if (playData == null) {
@@ -385,6 +397,9 @@ class PlaybackVideoFragment : VideoSupportFragment(),
 
                 override fun failed(msg: String?) {
                     //ignore
+                    if (useDlan) {
+                        return
+                    }
                     restartCheck(url)
                 }
             })
@@ -432,6 +447,9 @@ class PlaybackVideoFragment : VideoSupportFragment(),
                                 playerAdapter.loadSpeed()
                             }
                             SettingHolder.Option.RESET -> {
+                                if (useDlan) {
+                                    useDlan = false
+                                }
                                 PreferenceMgr.remove(activity, "remote")
                                 startScan(true)
                             }
