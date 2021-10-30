@@ -29,6 +29,7 @@ import com.pngcui.skyworth.dlna.center.MediaControlBrocastFactory
 import kotlinx.coroutines.*
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
+import org.greenrobot.eventbus.ThreadMode
 import java.util.*
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.math.floor
@@ -260,23 +261,20 @@ class PlaybackVideoFragment : VideoSupportFragment(),
         }
     }
 
-    @Subscribe
+    @Subscribe(threadMode = ThreadMode.MAIN)
     fun onDlan(media: DlnaMediaModel) {
         Log.d(TAG, "onDlan: " + JSON.toJSONString(media))
-        activity?.runOnUiThread {
-            playData = DlanUrlDTO()
-            playData?.apply {
-                url = media.url
-                title = media.title
-            }
-            playData?.let {
-                mTransportControlGlue.title = "\n" + it.title
-                mTransportControlGlue.subtitle = it.url
-                playerAdapter.setDataSource(it.url, it.headers)
-                if (isControlsOverlayVisible) {
-                    hideControlsOverlay(false)
-                }
-            }
+        if (activity?.isFinishing == true) {
+            return
+        }
+        playData = DlanUrlDTO()
+        playData?.apply {
+            url = media.url
+            title = media.title
+        }
+        play()
+        if (isControlsOverlayVisible) {
+            hideControlsOverlay(false)
         }
     }
 
@@ -341,8 +339,8 @@ class PlaybackVideoFragment : VideoSupportFragment(),
             lastMem?.let {
                 ToastMgr.shortBottomCenter(context, "播放下一集")
                 scope.launch(Dispatchers.IO) {
-                    Log.d(TAG, "playNext: ${it}/playNext")
-                    HttpUtils.get("${it}/playNext", object : HttpListener {
+                    Log.d(TAG, "playNext: ${lastMem}/playNext")
+                    HttpUtils.get("${lastMem}/playNext", object : HttpListener {
                         override fun success(body: String?) {
                             Log.d(TAG, "playNext success: $body")
                         }
@@ -374,18 +372,14 @@ class PlaybackVideoFragment : VideoSupportFragment(),
             HttpUtils.get("$url/playUrl?enhance=true", object : HttpListener {
                 override fun success(body: String?) {
                     restartCheck(url)
-                    if (playData == null) {
-                        playData = JSON.parseObject(body, DlanUrlDTO::class.java)
-
-                    } else if (JSON.toJSONString(playData).equals(body)) {
-                        return
-                    } else {
-                        playData = JSON.parseObject(body, DlanUrlDTO::class.java)
-                    }
-                    playData?.let {
-                        mTransportControlGlue.title = "\n" + it.title
-                        mTransportControlGlue.subtitle = it.url
-                        playerAdapter.setDataSource(it.url, it.headers)
+                    scope.launch(Dispatchers.Main) {
+                        if (playData == null) {
+                            playData = JSON.parseObject(body, DlanUrlDTO::class.java)
+                            play()
+                        } else if (!JSON.toJSONString(playData).equals(body)) {
+                            playData = JSON.parseObject(body, DlanUrlDTO::class.java)
+                            play()
+                        }
                     }
                 }
 
@@ -394,6 +388,14 @@ class PlaybackVideoFragment : VideoSupportFragment(),
                     restartCheck(url)
                 }
             })
+        }
+    }
+
+    private fun play() {
+        playData?.let {
+            mTransportControlGlue.title = "\n" + it.title
+            mTransportControlGlue.subtitle = it.url
+            playerAdapter.setDataSource(it.url, it.headers)
         }
     }
 
