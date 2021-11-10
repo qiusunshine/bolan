@@ -11,12 +11,10 @@ import chuangyuan.ycj.videolibrary.video.GestureVideoPlayer
 import chuangyuan.ycj.videolibrary.video.GestureVideoPlayer.DoubleTapArea
 import chuangyuan.ycj.videolibrary.widget.VideoPlayerView
 import com.alibaba.fastjson.JSON
+import com.hd.tvpro.MainActivity
 import com.hd.tvpro.app.App
 import com.hd.tvpro.setting.SettingHolder
-import com.hd.tvpro.util.PreferenceMgr
-import com.hd.tvpro.util.ScanLiveTVUtils
-import com.hd.tvpro.util.StringUtil
-import com.hd.tvpro.util.ToastMgr
+import com.hd.tvpro.util.*
 import com.hd.tvpro.util.http.HttpListener
 import com.hd.tvpro.util.http.HttpUtils
 import com.hd.tvpro.video.MediaPlayerAdapter
@@ -117,7 +115,14 @@ class PlaybackVideoFragment : VideoSupportFragment(),
         parent.removeView(mVideoSurface)
         parent.addView(videoView, 0)
 
-
+        if (activity is MainActivity) {
+            scope.launch(Dispatchers.Main) {
+                delay(2000)
+                if (StringUtil.isEmpty(mTransportControlGlue.title)) {
+                    (activity as MainActivity).showHelpDialog()
+                }
+            }
+        }
         val lastMem = PreferenceMgr.getString(activity, "remote", null)
         if (StringUtil.isNotEmpty(lastMem)) {
             scanLiveTVUtils.checkLastMem(lastMem, {
@@ -125,7 +130,9 @@ class PlaybackVideoFragment : VideoSupportFragment(),
             }, {
                 ToastMgr.shortBottomCenter(activity, "开始扫描远程设备，请稍候")
                 scanLiveTVUtils.scan(activity, {
-                    PreferenceMgr.put(context, "remote", it)
+                    if (context != null) {
+                        PreferenceMgr.put(context, "remote", it)
+                    }
                     startCheckPlayUrl(it)
                 }, {
                     if (!playerAdapter.isPlaying) {
@@ -407,6 +414,17 @@ class PlaybackVideoFragment : VideoSupportFragment(),
     }
 
     private fun play() {
+//        if (activity is MainActivity) {
+//            if ((activity as MainActivity).isOnPause) {
+//                WindowHelper.setTopApp(requireActivity())
+//            }
+//        }
+        if (isControlsOverlayVisible) {
+            hideControlsOverlay(false)
+        }
+        if (activity is MainActivity) {
+            (activity as MainActivity).hideHelpDialog()
+        }
         playData?.let {
             mTransportControlGlue.title = "\n" + it.title
             mTransportControlGlue.subtitle = it.url

@@ -13,6 +13,8 @@
     <string name="buy_2">AT $9.99</string>
     <string name="movie">Movie</string>
 
+    <string name="exit_btn"><b>退出</b></string>
+    <string name="setting_btn"><b>设置</b></string>
     <!-- Error messages -->
     <string name="error_fragment_message">An error occurred</string>
     <string name="dismiss_error">Dismiss</string>

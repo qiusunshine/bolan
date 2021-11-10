@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:color="@color/lightwhite" android:state_selected="true"></item>
+    <item android:color="@color/lightwhite" android:state_pressed="true"></item>
+    <item android:color="@color/logoBg" android:state_activated="true"></item>
+    <item android:color="@color/lightwhite" android:state_active="true"></item>
+    <item android:color="@color/lightwhite" android:state_focused="false"></item>
+    <item android:color="@color/lightwhite" android:state_focused="true"></item>
+</selector>
