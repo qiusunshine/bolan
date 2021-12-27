@@ -179,7 +179,8 @@ class MainActivity : FragmentActivity() {
         tv_isp.setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSize.toFloat())
         val tv_webadmin = exitView.findViewById<View>(R.id.tv_webadmin) as TextView
         tv_webadmin.text = (
-                "DLAN投屏：即海阔视界的播放器页面的传统投屏，也支持大多数其它软件直接投放\n" +
+                "投屏成功视频开始播放后本提示会自动消失\n" +
+                        "DLAN投屏：即海阔视界的播放器页面的传统投屏，也支持大多数其它软件直接投放\n" +
                         "网页投屏：需要海阔视界先在播放器页面点击网页投屏按钮，然后再打开本软件")
         tv_webadmin.setTextSize(TypedValue.COMPLEX_UNIT_PX, (fontSize * 8 / 10).toFloat())
         btn_exit.text = "确认"
@@ -206,7 +207,7 @@ class MainActivity : FragmentActivity() {
         dialog?.showAtLocation(window?.decorView, Gravity.CENTER, 0, 0)
     }
 
-    fun hideHelpDialog(){
+    fun hideHelpDialog() {
         if (dialog != null && dialog!!.isShowing) {
             dialog?.dismiss()
         }

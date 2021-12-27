@@ -72,6 +72,12 @@ class PlaybackVideoFragment : VideoSupportFragment(),
         videoView = VideoPlayerView(context)
         val glueHost = VideoSupportFragmentGlueHost(this@PlaybackVideoFragment)
         playerAdapter = MediaPlayerAdapter(requireActivity(), videoView, videoDataHelper)
+
+        playerAdapter.playStartTask = Runnable {
+            if (activity is MainActivity) {
+                (activity as MainActivity).hideHelpDialog()
+            }
+        }
         playerAdapter.setRepeatAction(PlaybackControlsRow.RepeatAction.INDEX_NONE)
 
         mTransportControlGlue = MyPlaybackTransportControlGlue(activity, playerAdapter)
@@ -285,6 +291,38 @@ class PlaybackVideoFragment : VideoSupportFragment(),
         if (isControlsOverlayVisible) {
             hideControlsOverlay(false)
         }
+    }
+
+    override fun onInterceptInputEvent(event: InputEvent?): Boolean {
+        var keyCode = KeyEvent.KEYCODE_UNKNOWN
+        var keyAction = 0
+        if (event is KeyEvent) {
+            keyCode = event.keyCode
+            keyAction = event.action
+        }
+        if (!isControlsOverlayVisible) {
+            when (keyCode) {
+                KeyEvent.KEYCODE_DPAD_LEFT -> {
+                    if (keyAction == KeyEvent.ACTION_DOWN) {
+                        fastPositionJump(-10)
+                        ToastMgr.shortBottomCenter(context, "已快退10秒")
+                    }
+                    return true
+                }
+                KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                    if (keyAction == KeyEvent.ACTION_DOWN) {
+                        fastPositionJump(10)
+                        ToastMgr.shortBottomCenter(context, "已快进10秒")
+                    }
+                    return true
+                }
+                KeyEvent.KEYCODE_MENU -> {
+                    showSetting()
+                    return true
+                }
+            }
+        }
+        return super.onInterceptInputEvent(event)
     }
 
     override fun onResume() {

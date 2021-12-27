@@ -52,6 +52,7 @@ class MediaPlayerAdapter constructor(
     var headers: Map<String, String>? = null
     var mHasDisplay = false
     var mBufferedProgress: Long = 0
+    var playStartTask: Runnable? = null
 
     private var listeners: MutableList<Callback> = ArrayList()
 
@@ -86,6 +87,7 @@ class MediaPlayerAdapter constructor(
                         it.onBufferingStateChanged(this@MediaPlayerAdapter, false)
                         it.onPreparedStateChanged(this@MediaPlayerAdapter)
                     }
+                    playStartTask?.run()
                 }
 
                 override fun onLoadingChanged() {

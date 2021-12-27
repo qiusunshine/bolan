@@ -1,6 +1,7 @@
 package com.hd.tvpro.setting
 
 import android.content.Context
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.util.DisplayMetrics
@@ -68,6 +69,16 @@ class SettingHolder constructor(
             val aboutOption = SettingOption("关于软件")
             aboutOption.mRightList.add("新版下载地址")
             aboutOption.mRightList.add("新方圆小棉袄")
+            val versionName = try {
+                val pkName = context.packageName
+                context.packageManager.getPackageInfo(
+                    pkName, 0
+                ).versionName
+            } catch (e: PackageManager.NameNotFoundException) {
+                e.printStackTrace()
+                ""
+            }
+            aboutOption.mRightList.add("版本：$versionName")
             settingArrayList.add(aboutOption)
 
             var pos = index
