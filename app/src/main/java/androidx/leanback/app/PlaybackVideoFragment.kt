@@ -47,6 +47,8 @@ class PlaybackVideoFragment : VideoSupportFragment(),
     private lateinit var mMediaControlBorcastFactory: MediaControlBrocastFactory
     private val scope = CoroutineScope(EmptyCoroutineContext)
     private var useDlan = false
+    private var lastShowToastTime1: Long = 0
+    private var lastShowToastTime2: Long = 0
 
     fun dispatchTouchEvent(ev: MotionEvent): Boolean {
         return false
@@ -305,14 +307,22 @@ class PlaybackVideoFragment : VideoSupportFragment(),
                 KeyEvent.KEYCODE_DPAD_LEFT -> {
                     if (keyAction == KeyEvent.ACTION_DOWN) {
                         fastPositionJump(-10)
-                        ToastMgr.shortBottomCenter(context, "已快退10秒")
+                        val now = System.currentTimeMillis()
+                        if(now - lastShowToastTime1 > 5 * 1000){
+                            ToastMgr.shortBottomCenter(context, "已快退10秒")
+                        }
+                        lastShowToastTime1 = now
                     }
                     return true
                 }
                 KeyEvent.KEYCODE_DPAD_RIGHT -> {
                     if (keyAction == KeyEvent.ACTION_DOWN) {
                         fastPositionJump(10)
-                        ToastMgr.shortBottomCenter(context, "已快进10秒")
+                        val now = System.currentTimeMillis()
+                        if(now - lastShowToastTime2 > 5 * 1000){
+                            ToastMgr.shortBottomCenter(context, "已快进10秒")
+                        }
+                        lastShowToastTime2 = now
                     }
                     return true
                 }
