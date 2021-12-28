@@ -306,10 +306,10 @@ class PlaybackVideoFragment : VideoSupportFragment(),
             when (keyCode) {
                 KeyEvent.KEYCODE_DPAD_LEFT -> {
                     if (keyAction == KeyEvent.ACTION_DOWN) {
-                        fastPositionJump(-10)
+                        fastPositionJump(-15)
                         val now = System.currentTimeMillis()
-                        if(now - lastShowToastTime1 > 5 * 1000){
-                            ToastMgr.shortBottomCenter(context, "已快退10秒")
+                        if (now - lastShowToastTime1 > 5 * 1000) {
+                            ToastMgr.shortBottomCenter(context, "已快退15秒")
                         }
                         lastShowToastTime1 = now
                     }
@@ -317,10 +317,10 @@ class PlaybackVideoFragment : VideoSupportFragment(),
                 }
                 KeyEvent.KEYCODE_DPAD_RIGHT -> {
                     if (keyAction == KeyEvent.ACTION_DOWN) {
-                        fastPositionJump(10)
+                        fastPositionJump(15)
                         val now = System.currentTimeMillis()
-                        if(now - lastShowToastTime2 > 5 * 1000){
-                            ToastMgr.shortBottomCenter(context, "已快进10秒")
+                        if (now - lastShowToastTime2 > 5 * 1000) {
+                            ToastMgr.shortBottomCenter(context, "已快进15秒")
                         }
                         lastShowToastTime2 = now
                     }
