@@ -391,9 +391,13 @@ class PlaybackVideoFragment : VideoSupportFragment(),
     }
 
     private val videoDataHelper = object : VideoDataHelper {
-        override fun next() {
+        override fun next(autoEnd: Boolean) {
             if (useDlan) {
-                ToastMgr.shortBottomCenter(context, "正在使用DLAN投屏，手机上操作吧~")
+                if (autoEnd) {
+                    ToastMgr.shortBottomCenter(context, "正在使用DLAN投屏，不支持自动下一集")
+                } else {
+                    ToastMgr.shortBottomCenter(context, "正在使用DLAN投屏，手机上操作吧~")
+                }
                 return
             }
             val lastMem = PreferenceMgr.getString(activity, "remote", null)

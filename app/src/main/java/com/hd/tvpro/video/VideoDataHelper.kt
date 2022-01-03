@@ -7,7 +7,7 @@ package com.hd.tvpro.video
  */
 interface VideoDataHelper {
 
-    fun next()
+    fun next(autoEnd: Boolean)
 
     fun previous()
 

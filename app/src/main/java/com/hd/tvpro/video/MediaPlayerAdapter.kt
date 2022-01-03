@@ -110,6 +110,7 @@ class MediaPlayerAdapter constructor(
                     listeners.forEach {
                         it.onPlayCompleted(this@MediaPlayerAdapter)
                     }
+                    videoDataHelper.next(true)
                 }
             }
 
@@ -351,7 +352,7 @@ class MediaPlayerAdapter constructor(
     }
 
     override fun next() {
-        videoDataHelper.next()
+        videoDataHelper.next(false)
     }
 
     override fun fastForward() {
