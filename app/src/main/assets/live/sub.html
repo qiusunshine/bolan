@@ -1,0 +1,109 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>
+        直播源管理
+    </title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link href="//cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+    <script src="jquery.min.js">
+    </script>
+    <script src="bootstrap.min.js">
+    </script>
+    <style>
+    body,div,dl,dt,dd,ul,ol,h1,h2,h3,h4,h5,code,form,input,button,textarea,p,th,td {
+		margin:0;
+		padding:0;
+		outline:0
+	}
+	html {
+		-webkit-text-size-adjust:100%;
+		-ms-text-size-adjust:100%;
+		-webkit-font-smoothing:antialiased;
+		-webkit-tap-highlight-color:rgba(0,0,0,0);
+		font-size:calc(100vw/7.5)
+	}
+	body {
+		font:16px/1.5"Microsoft YaHei","Helvetica Neue",Helvetica,Arial,sans-serif;
+		-webkit-overflow-scrolling:touch;
+		color:#333;
+	}
+	.playlist {
+		margin-bottom:.2rem;
+		padding:.3rem 0;
+		border-top:1px solid #ddd
+	}
+	.sub-input{
+		width: calc(100% - .4rem);
+		margin: .1rem .2rem;
+	}
+	.sub-btn {
+		margin: .1rem 0 0 0;
+	}
+
+	.sub-list{
+		list-style:none;
+		vertical-align:middle
+	}
+	.sub_item{
+		padding: 5px;
+		margin: 0 .2rem .2rem;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+	}
+	.modal-content {
+        padding: 10px;
+    }
+    .s-btn-group {
+        padding: 0 .1rem .2rem .1rem;
+    }
+    .s-btn-group btn {
+        display: flex;
+    }
+    .batch-modal {
+
+    }
+
+    #sb-textarea {
+        width: 100%;
+        white-space: pre-line;
+    }
+    .my-btn-group {
+        text-align: center;
+    }
+    .footer {
+        text-align: center;
+        margin: 0.2rem 0 0 0;
+    }
+    </style>
+</head>
+<body>
+    <div>
+        <ol class="breadcrumb">
+            <li class="active">波澜投屏直播源管理</li>
+        </ol>
+    </div>
+    <div>
+        <input id="url" type="text" class="sub-input form-control"
+               placeholder="直播源地址，如http://1.com/1.txt">
+    </div>
+    <div class="s-btn-group my-btn-group">
+        <button class="sub-btn btn btn-primary" id="save">提交保存</button>
+    </div>
+    <div id="modal-info" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel">
+        <div class="modal-dialog modal-sm" role="document">
+            <div class="modal-content">
+                <div class="modal-body" id="modal-info-content"></div>
+                <div class="modal-footer">
+                    <button class="sub-btn btn btn-default" id="info-modal-btn">确认</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="footer">
+        <a href="https://haikuo.lanzouq.com/u/GoldRiver">波澜助手APP端</a>
+    </div>
+    <script src="sub.js"></script>
+</body>
+</html>

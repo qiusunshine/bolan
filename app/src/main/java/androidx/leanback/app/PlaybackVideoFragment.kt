@@ -1,6 +1,8 @@
 package androidx.leanback.app
 
+import android.content.Context
 import android.os.Bundle
+import android.util.DisplayMetrics
 import android.util.Log
 import android.view.*
 import androidx.leanback.media.PlayerAdapter
@@ -13,6 +15,10 @@ import chuangyuan.ycj.videolibrary.widget.VideoPlayerView
 import com.alibaba.fastjson.JSON
 import com.hd.tvpro.MainActivity
 import com.hd.tvpro.app.App
+import com.hd.tvpro.event.PlayUrlChange
+import com.hd.tvpro.event.SubChange
+import com.hd.tvpro.event.SwitchUrlChange
+import com.hd.tvpro.setting.LiveListHolder
 import com.hd.tvpro.setting.SettingHolder
 import com.hd.tvpro.util.*
 import com.hd.tvpro.util.http.HttpListener
@@ -28,7 +34,9 @@ import kotlinx.coroutines.*
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
+import service.model.LiveItem
 import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.math.floor
 
@@ -49,8 +57,20 @@ class PlaybackVideoFragment : VideoSupportFragment(),
     private var useDlan = false
     private var lastShowToastTime1: Long = 0
     private var lastShowToastTime2: Long = 0
+    private var liveListHolder: LiveListHolder? = null
+    private var liveItem: LiveItem? = null
+
+    private var webDlanData: DlanUrlDTO? = null
 
     fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        return false
+    }
+
+    fun onKeyDown(keyCode: Int, ev: KeyEvent?): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_MENU) {
+            showSetting()
+            return true
+        }
         return false
     }
 
@@ -60,6 +80,13 @@ class PlaybackVideoFragment : VideoSupportFragment(),
                 hideControlsOverlay(false)
             }
             settingHolder!!.hide()
+            return true
+        }
+        if (liveListHolder != null && liveListHolder!!.isShowing()) {
+            if (isControlsOverlayVisible) {
+                hideControlsOverlay(false)
+            }
+            liveListHolder!!.hide()
             return true
         }
         if (isControlsOverlayVisible) {
@@ -93,6 +120,11 @@ class PlaybackVideoFragment : VideoSupportFragment(),
                     if (keyCode == KeyEvent.KEYCODE_MENU) {
                         showSetting()
                         return true
+                    } else if (keyCode == KeyEvent.KEYCODE_DPAD_UP || keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                        if (!isControlsOverlayVisible && (liveListHolder == null || !liveListHolder!!.isShowing())) {
+                            showLive()
+                            return true
+                        }
                     }
                     return false
                 }
@@ -117,8 +149,19 @@ class PlaybackVideoFragment : VideoSupportFragment(),
         }
 
         //不加这句，控制条不会自动消失
-        playerAdapter.setDataSource("file:///android_asset/test.jpg", null)
+        val initUrl = PreferenceMgr.getString(context, "playUrl", "file:///android_asset/test.jpg")
+        val initTitle = PreferenceMgr.getString(context, "playTitle", null)
+        if (!initTitle.isNullOrEmpty()) {
+            mTransportControlGlue.title = "\n" + initTitle
+            mTransportControlGlue.subtitle = initUrl
+            val urls = PreferenceMgr.getString(context, "playUrls", "")
+            if (urls.isNotEmpty()) {
+                liveItem = LiveItem(initTitle, ArrayList(urls.split("|||")))
+            }
+        }
 
+        playerAdapter.setDataSource(initUrl, null)
+        LiveListHolder.loadBackground(requireContext())
         val parent = mVideoSurface.parent as ViewGroup
         parent.removeView(mVideoSurface)
         parent.addView(videoView, 0)
@@ -126,7 +169,7 @@ class PlaybackVideoFragment : VideoSupportFragment(),
         if (activity is MainActivity) {
             scope.launch(Dispatchers.Main) {
                 delay(2000)
-                if (StringUtil.isEmpty(mTransportControlGlue.title)) {
+                if (StringUtil.isEmpty(mTransportControlGlue.title) && !playerAdapter.isPlaying) {
                     (activity as MainActivity).showHelpDialog()
                 }
             }
@@ -245,7 +288,16 @@ class PlaybackVideoFragment : VideoSupportFragment(),
                 if (isControlsOverlayVisible) {
                     hideControlsOverlay(false)
                 }
-                showSetting()
+                val dm = DisplayMetrics()
+                val windowManager =
+                    context!!.getSystemService(Context.WINDOW_SERVICE) as WindowManager?
+                windowManager!!.defaultDisplay.getMetrics(dm)
+                val width: Int = dm.widthPixels
+                if (e != null && e.x < width / 2) {
+                    showLive()
+                } else {
+                    showSetting()
+                }
                 super.onLongPress(e)
             }
 
@@ -290,6 +342,37 @@ class PlaybackVideoFragment : VideoSupportFragment(),
             title = media.title
         }
         play()
+        if (isControlsOverlayVisible) {
+            hideControlsOverlay(false)
+        }
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    fun onSwitch(media: SwitchUrlChange) {
+        if (activity?.isFinishing == true) {
+            return
+        }
+        playData = DlanUrlDTO()
+        playData?.apply {
+            url = media.url
+        }
+        play(false)
+        if (isControlsOverlayVisible) {
+            hideControlsOverlay(false)
+        }
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    fun onPlay(media: PlayUrlChange) {
+        if (activity?.isFinishing == true) {
+            return
+        }
+        playData = DlanUrlDTO()
+        playData?.apply {
+            url = media.url
+            title = media.url
+        }
+        play(true)
         if (isControlsOverlayVisible) {
             hideControlsOverlay(false)
         }
@@ -444,11 +527,13 @@ class PlaybackVideoFragment : VideoSupportFragment(),
                     }
                     restartCheck(url)
                     scope.launch(Dispatchers.Main) {
-                        if (playData == null) {
+                        if (webDlanData == null) {
                             playData = JSON.parseObject(body, DlanUrlDTO::class.java)
+                            webDlanData = playData
                             play()
-                        } else if (!JSON.toJSONString(playData).equals(body)) {
+                        } else if (!JSON.toJSONString(webDlanData).equals(body)) {
                             playData = JSON.parseObject(body, DlanUrlDTO::class.java)
+                            webDlanData = playData
                             play()
                         }
                     }
@@ -465,12 +550,15 @@ class PlaybackVideoFragment : VideoSupportFragment(),
         }
     }
 
-    private fun play() {
+    private fun play(clearSwitch: Boolean = true) {
 //        if (activity is MainActivity) {
 //            if ((activity as MainActivity).isOnPause) {
 //                WindowHelper.setTopApp(requireActivity())
 //            }
 //        }
+        if (clearSwitch) {
+            liveItem = null
+        }
         if (isControlsOverlayVisible) {
             hideControlsOverlay(false)
         }
@@ -482,6 +570,7 @@ class PlaybackVideoFragment : VideoSupportFragment(),
             mTransportControlGlue.subtitle = it.url
             playerAdapter.setDataSource(it.url, it.headers)
         }
+        hideControlsOverlay(true)
     }
 
     private fun restartCheck(url: String) {
@@ -523,6 +612,9 @@ class PlaybackVideoFragment : VideoSupportFragment(),
                                 PreferenceMgr.remove(activity, "remote")
                                 startScan(true)
                             }
+                            SettingHolder.Option.FINISH -> {
+                                activity?.finish()
+                            }
                         }
                     }
                 })
@@ -530,7 +622,45 @@ class PlaybackVideoFragment : VideoSupportFragment(),
         if (settingHolder!!.isShowing()) {
             return
         }
-        settingHolder!!.show(videoView)
+        settingHolder!!.show(videoView, playData?.url, liveItem)
+    }
+
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    fun onLiveUrlChange(subChange: SubChange) {
+        if (liveListHolder != null && liveListHolder!!.isShowing()) {
+            liveListHolder?.hide()
+        }
+        liveListHolder = null
+        LiveListHolder.liveData = ArrayList()
+        LiveListHolder.settingArrayList = ArrayList()
+        showLive()
+    }
+
+    fun showLive() {
+        if (liveListHolder == null) {
+            liveListHolder =
+                LiveListHolder(requireContext()) { liveItem ->
+                    playData = DlanUrlDTO()
+                    playData?.apply {
+                        url = liveItem.urls[0]
+                        title = liveItem.name
+                    }
+                    this.liveItem = liveItem
+                    PreferenceMgr.put(context, "playUrl", liveItem.urls[0])
+                    PreferenceMgr.put(context, "playTitle", liveItem.name)
+                    PreferenceMgr.put(context, "playUrls", liveItem.urls.joinToString("|||"))
+                    play(false)
+                    if (isControlsOverlayVisible) {
+                        hideControlsOverlay(false)
+                    }
+                    liveListHolder?.hide()
+                }
+        }
+        if (liveListHolder!!.isShowing()) {
+            return
+        }
+        liveListHolder!!.show(videoView)
     }
 
     companion object {

@@ -2,9 +2,11 @@ plugins {
     id 'com.android.application'
     id 'kotlin-android'
 }
+apply plugin: 'kotlin-kapt'
+apply plugin: 'com.yanzhenjie.andserver'
 def appName = "波澜投屏"
-def versionCodeNew = 18
-def versionNameNew = "1.5"
+def versionCodeNew = 21
+def versionNameNew = "1.7"
 
 android {
     compileSdkVersion 30
@@ -62,4 +64,9 @@ dependencies {
     //统计和crash
     implementation  'com.umeng.umsdk:common:9.4.4'
     implementation fileTree(dir: 'libs', include: ['*.jar'])
+
+    //网页投屏
+    implementation 'com.yanzhenjie.andserver:api:2.1.9'
+    kapt 'com.yanzhenjie.andserver:processor:2.1.9'
+    implementation 'com.google.zxing:core:3.3.0'
 }

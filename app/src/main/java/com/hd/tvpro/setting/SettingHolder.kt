@@ -13,9 +13,12 @@ import android.widget.PopupWindow
 import android.widget.TextView
 import com.hd.tvpro.R
 import com.hd.tvpro.constants.AppConfig
+import com.hd.tvpro.event.SwitchUrlChange
 import com.hd.tvpro.util.PreferenceMgr
 import com.hd.tvpro.util.ShareUtil
 import com.hd.tvpro.view.SelectListView
+import org.greenrobot.eventbus.EventBus
+import service.model.LiveItem
 
 /**
  * 作者：By 15968
@@ -38,16 +41,23 @@ class SettingHolder constructor(
     private var settingView: View? = null
 
     enum class Option {
-        SCREEN, SPEED, RESET
+        SCREEN, SPEED, RESET, FINISH
     }
 
     interface SettingUpdateListener {
         fun update(option: Option)
     }
 
-    private fun setSettingText(index: Int) {
+    private fun setSettingText(index: Int, nowUrl: String?, liveItem: LiveItem?) {
         try {
             settingArrayList.clear()
+            if (liveItem != null && liveItem.urls.isNotEmpty()) {
+                val switchOption = SettingOption("线路切换")
+                for (item in liveItem.urls.withIndex()) {
+                    switchOption.mRightList.add("线路${item.index}")
+                }
+                settingArrayList.add(switchOption)
+            }
             val screenOption = SettingOption("屏幕比例")
             screenOption.mRightList.add("自适应")
             screenOption.mRightList.add("充满屏幕")
@@ -79,6 +89,7 @@ class SettingHolder constructor(
                 ""
             }
             aboutOption.mRightList.add("版本：$versionName")
+            aboutOption.mRightList.add("退出软件")
             settingArrayList.add(aboutOption)
 
             var pos = index
@@ -107,6 +118,14 @@ class SettingHolder constructor(
                     val screenScale = PreferenceMgr.getInt(context, "screen", 0)
                     mAdapterSettingValue!!.setSelection(screenScale)
                 }
+                "线路切换" -> {
+                    for (item in liveItem!!.urls.withIndex()) {
+                        if (item.value == nowUrl) {
+                            mAdapterSettingValue!!.setSelection(item.index)
+                            break
+                        }
+                    }
+                }
                 else -> {
                 }
             }
@@ -128,8 +147,17 @@ class SettingHolder constructor(
                         settingUpdateListener.update(Option.RESET)
                         hide()
                     }
+                    "线路切换" -> {
+                        val url = liveItem!!.urls[posval]
+                        EventBus.getDefault().post(SwitchUrlChange(url))
+                        hide()
+                    }
                     "关于软件" -> {
-                        ShareUtil.startUrl(context, "https://haikuo.lanzoui.com/u/GoldRiver")
+                        if (settingArrayList[pos].mRightList[posval] == "退出软件") {
+                            settingUpdateListener.update(Option.FINISH)
+                        } else {
+                            ShareUtil.startUrl(context, "https://haikuo.lanzoui.com/u/GoldRiver")
+                        }
                     }
                     else -> {
                     }
@@ -144,7 +172,7 @@ class SettingHolder constructor(
         return ArrayList(listOf(1f, 1.2f, 1.5f, 2f, 3f, 4f))
     }
 
-    fun show(anchor: View) {
+    fun show(anchor: View, nowUrl: String? = null, liveItem: LiveItem? = null) {
         settingView = LayoutInflater.from(context).inflate(R.layout.layout_setting, null)
         val dm = DisplayMetrics()
         val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager?
@@ -156,7 +184,7 @@ class SettingHolder constructor(
         val fontSize = width / 42
         AppConfig.fontSize = fontSize
         mSettingList = settingView!!.findViewById<View>(R.id.lv_setting_left) as SelectListView
-        setSettingText(0)
+        setSettingText(0, nowUrl, liveItem)
         mSettingList.requestFocus()
         mAdapterSetting = ListViewAdapterSettingLeft(context, settingArrayList!!, 0)
         mSettingList.pos = 0
@@ -173,7 +201,7 @@ class SettingHolder constructor(
                 parent: AdapterView<*>?, view: View,
                 position: Int, id: Long
             ) {
-                setSettingText(position)
+                setSettingText(position, nowUrl, liveItem)
                 mSettingPos = position
                 mAdapterSetting!!.setSelection(position)
                 mSettingList.setSelect(position, 0)
@@ -182,7 +210,7 @@ class SettingHolder constructor(
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
         mSettingList.setOnItemClickListener { adapter, v, pos, id ->
-            setSettingText(pos)
+            setSettingText(pos, nowUrl, liveItem)
             mAdapterSetting!!.setSelection(pos)
             mSettingList.setSelect(pos, 0)
         }

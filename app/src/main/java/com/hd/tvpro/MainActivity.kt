@@ -1,25 +1,31 @@
 package com.hd.tvpro
 
+import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.os.Bundle
 import android.util.TypedValue
-import android.view.Gravity
-import android.view.MotionEvent
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import android.widget.Button
+import android.widget.ImageView
 import android.widget.PopupWindow
 import android.widget.TextView
 import androidx.fragment.app.FragmentActivity
 import androidx.leanback.app.PlaybackVideoFragment
+import com.hd.tvpro.app.App
+import com.hd.tvpro.util.QRCodeUtil.createQRCodeBitmap
+import com.hd.tvpro.webserver.WebServer
 import com.pngcui.skyworth.dlna.service.MediaRenderService
 import com.pngcui.skyworth.dlna.util.CommonUtil
 import com.smarx.notchlib.NotchScreenManager
 import kotlinx.coroutines.*
+import utils.IPUtil
 import kotlin.coroutines.EmptyCoroutineContext
+import kotlin.math.min
+
 
 /**
  * Loads [MainFragment].
@@ -28,6 +34,10 @@ class MainActivity : FragmentActivity() {
     var isOnPause = false
     private val fragment = PlaybackVideoFragment()
     private var dialog: PopupWindow? = null
+
+    fun getContext(): Context {
+        return this
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,6 +68,13 @@ class MainActivity : FragmentActivity() {
                 }
             }
         }
+        if (App.webServer == null) {
+            try {
+                App.webServer = WebServer()
+                App.webServer?.start()
+            } catch (e: Exception) {
+            }
+        }
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -78,6 +95,14 @@ class MainActivity : FragmentActivity() {
         return super.dispatchTouchEvent(ev)
     }
 
+    override fun onKeyDown(keyCode: Int, ev: KeyEvent?): Boolean {
+        if (ev != null && fragment.onKeyDown(keyCode, ev)) {
+            //fragment拦截了
+            return true
+        }
+        return super.onKeyDown(keyCode, ev)
+    }
+
     override fun onBackPressed() {
         if (dialog != null && dialog!!.isShowing) {
             dialog?.dismiss()
@@ -87,8 +112,8 @@ class MainActivity : FragmentActivity() {
             //fragment拦截了
             return
         }
-//        showExitDialog()
-        super.onBackPressed()
+        showExitDialog()
+//        super.onBackPressed()
     }
 
     override fun onPause() {
@@ -123,6 +148,13 @@ class MainActivity : FragmentActivity() {
         val tv_isp = exitView.findViewById<View>(R.id.tv_isp) as TextView
         val btn_exit = exitView.findViewById<View>(R.id.btn_exit) as Button
         val btn_setting = exitView.findViewById<View>(R.id.btn_setting) as Button
+        val qrcodeView = exitView.findViewById<View>(R.id.qrcodeView) as ImageView
+
+        val qrParams: ViewGroup.LayoutParams = qrcodeView.layoutParams
+        qrParams.height = min(CommonUtil.getScreenWidth(this), CommonUtil.getScreenHeight(this)) / 4
+        qrParams.width = qrParams.height
+        qrcodeView.layoutParams = qrParams
+
         val params: ViewGroup.LayoutParams = btn_exit.layoutParams
         params.height = CommonUtil.getScreenHeight(this) / 10
         btn_exit.layoutParams = params
@@ -132,18 +164,22 @@ class MainActivity : FragmentActivity() {
         tv_isp.text = "确认退出软件？"
         tv_isp.setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSize.toFloat())
         val tv_webadmin = exitView.findViewById<View>(R.id.tv_webadmin) as TextView
-        tv_webadmin.text = "支持DLAN投屏和海阔视界网页投屏"
+        val ip = IPUtil.getIP(getContext())
+        val url = "http://$ip:12345"
+        tv_webadmin.text = ("远程管理地址：\n$url")
+        val mBitmap: Bitmap? = createQRCodeBitmap(url, 480, 480)
+        qrcodeView.setImageBitmap(mBitmap)
+
         tv_webadmin.setTextSize(TypedValue.COMPLEX_UNIT_PX, (fontSize * 8 / 10).toFloat())
         btn_exit.text = "退出"
         btn_exit.setOnClickListener {
             finish()
         }
-        btn_setting.text = "后台"
+        btn_setting.text = "取消"
         btn_setting.setOnClickListener {
             if (dialog != null) {
                 dialog?.dismiss()
             }
-            moveTaskToBack(true)
         }
         btn_exit.requestFocus()
         dialog =
@@ -165,7 +201,7 @@ class MainActivity : FragmentActivity() {
         hideHelpDialog()
         val fontSize = CommonUtil.getScreenWidth(this) / 42
         val inflater = layoutInflater
-        val exitView: View = inflater.inflate(R.layout.layout_exit_dialog, null)
+        val exitView: View = inflater.inflate(R.layout.layout_help_dialog, null)
         val tv_isp = exitView.findViewById<View>(R.id.tv_isp) as TextView
         val btn_exit = exitView.findViewById<View>(R.id.btn_exit) as Button
         val btn_setting = exitView.findViewById<View>(R.id.btn_setting) as Button

@@ -8,4 +8,5 @@ package com.hd.tvpro.constants
 object AppConfig {
     var settingHeight = 0
     var fontSize = 20
+    var liveHeight = 0
 }

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/ll_setting"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_gravity="center"
+    android:background="@drawable/live_list_bg"
+    android:gravity="clip_vertical"
+    android:orientation="vertical">
+
+    <com.hd.tvpro.view.ChannelListView
+        android:id="@+id/lv_setting_right"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:dividerHeight="@dimen/divider_height"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:listSelector="@drawable/item_bg_selector_setting_right" />
+</LinearLayout>

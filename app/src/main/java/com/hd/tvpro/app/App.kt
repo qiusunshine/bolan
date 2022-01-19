@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import androidx.multidex.MultiDex
 import com.hd.tvpro.constants.TimeConstants
+import com.hd.tvpro.webserver.WebServer
 import com.lzy.okgo.OkGo
 import com.lzy.okgo.https.HttpsUtils
 import com.lzy.okgo.model.HttpHeaders
@@ -27,6 +28,7 @@ open class App : Application(), ItatisticsEvent {
 
     companion object {
         lateinit var INSTANCE: App
+        var webServer: WebServer? = null
     }
 
     private var mDeviceInfo: DeviceInfo = DeviceInfo()
