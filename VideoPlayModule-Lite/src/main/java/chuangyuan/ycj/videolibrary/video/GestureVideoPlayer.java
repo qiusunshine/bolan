@@ -180,10 +180,12 @@ public class GestureVideoPlayer extends ExoUserPlayer {
                 newPosition = -1;
             } else {
                 player.seekTo(newPosition);
+                videoPlayerView.seekFromPlayer(newPosition);
                 newPosition = -1;
             }
         }
         if (player != null && player.getPlaybackParameters() != null && player.getPlaybackParameters().speed != VideoPlayerManager.PLAY_SPEED) {
+            VideoPlayerManager.tempFastPlay = false;
             player.setPlaybackParameters(new PlaybackParameters(VideoPlayerManager.PLAY_SPEED, 1f));
         }
         getPlayerViewListener().showGestureView(View.GONE);
@@ -274,7 +276,11 @@ public class GestureVideoPlayer extends ExoUserPlayer {
      * @param speedNow 当前速度
      */
     private synchronized void showTempFastDialog(float speedNow) {
+        if(player == null){
+            return;
+        }
         getPlayerViewListener().showLongPress(speedNow, false);
+        VideoPlayerManager.tempFastPlay = true;
         player.setPlaybackParameters(new PlaybackParameters(2 * speedNow, 1f));
     }
 
@@ -291,6 +297,7 @@ public class GestureVideoPlayer extends ExoUserPlayer {
         onGestureProgressListener = null;
         onGestureVolumeListener = null;
         listener = null;
+        VideoPlayerManager.tempFastPlay = false;
     }
 
     /***

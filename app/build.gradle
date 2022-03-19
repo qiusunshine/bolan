@@ -5,8 +5,8 @@ plugins {
 apply plugin: 'kotlin-kapt'
 apply plugin: 'com.yanzhenjie.andserver'
 def appName = "波澜投屏"
-def versionCodeNew = 21
-def versionNameNew = "1.7"
+def versionCodeNew = 26
+def versionNameNew = "2.1"
 
 android {
     compileSdkVersion 30
@@ -69,4 +69,5 @@ dependencies {
     implementation 'com.yanzhenjie.andserver:api:2.1.9'
     kapt 'com.yanzhenjie.andserver:processor:2.1.9'
     implementation 'com.google.zxing:core:3.3.0'
+    implementation 'javax.activation:javax.activation-api:1.2.0'
 }

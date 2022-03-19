@@ -1,6 +1,7 @@
 package androidx.leanback.app
 
 import android.content.Context
+import android.graphics.Color
 import android.os.Bundle
 import android.util.DisplayMetrics
 import android.util.Log
@@ -13,7 +14,10 @@ import chuangyuan.ycj.videolibrary.video.GestureVideoPlayer
 import chuangyuan.ycj.videolibrary.video.GestureVideoPlayer.DoubleTapArea
 import chuangyuan.ycj.videolibrary.widget.VideoPlayerView
 import com.alibaba.fastjson.JSON
+import com.google.android.exoplayer2.ui.CaptionStyleCompat
+import com.google.android.exoplayer2.ui.SubtitleView
 import com.hd.tvpro.MainActivity
+import com.hd.tvpro.R
 import com.hd.tvpro.app.App
 import com.hd.tvpro.event.PlayUrlChange
 import com.hd.tvpro.event.SubChange
@@ -151,6 +155,9 @@ class PlaybackVideoFragment : VideoSupportFragment(),
         //不加这句，控制条不会自动消失
         val initUrl = PreferenceMgr.getString(context, "playUrl", "file:///android_asset/test.jpg")
         val initTitle = PreferenceMgr.getString(context, "playTitle", null)
+        playData = DlanUrlDTO()
+        playData?.url = initUrl
+        playData?.title = initTitle
         if (!initTitle.isNullOrEmpty()) {
             mTransportControlGlue.title = "\n" + initTitle
             mTransportControlGlue.subtitle = initUrl
@@ -197,6 +204,18 @@ class PlaybackVideoFragment : VideoSupportFragment(),
             startScan(false)
         }
 
+        //字幕背景透明化
+        val subtitleView: SubtitleView? = videoView.findViewById(R.id.exo_subtitles)
+        subtitleView?.setStyle(
+            CaptionStyleCompat(
+                Color.WHITE,
+                Color.TRANSPARENT,
+                Color.TRANSPARENT,
+                CaptionStyleCompat.EDGE_TYPE_NONE,
+                Color.WHITE,  /* typeface= */
+                null
+            )
+        )
         initDlan()
     }
 
@@ -356,6 +375,7 @@ class PlaybackVideoFragment : VideoSupportFragment(),
         playData?.apply {
             url = media.url
         }
+        PreferenceMgr.put(context, "playUrl", media.url)
         play(false)
         if (isControlsOverlayVisible) {
             hideControlsOverlay(false)
@@ -371,6 +391,7 @@ class PlaybackVideoFragment : VideoSupportFragment(),
         playData?.apply {
             url = media.url
             title = media.url
+            subtitle = media.subtitle
         }
         play(true)
         if (isControlsOverlayVisible) {
@@ -387,25 +408,66 @@ class PlaybackVideoFragment : VideoSupportFragment(),
         }
         if (!isControlsOverlayVisible) {
             when (keyCode) {
+                KeyEvent.KEYCODE_BACK -> {
+                    val act = activity as MainActivity
+                    if (act.dismissDialog()) {
+                        return true
+                    }
+                    if (onBackPressed()) {
+                        return true
+                    }
+                }
+                KeyEvent.KEYCODE_DPAD_UP -> {
+                    if (playerAdapter.player?.player?.isCurrentWindowLive == true) {
+                        showLive()
+                        return true
+                    }
+                }
+                KeyEvent.KEYCODE_DPAD_DOWN -> {
+                    if (playerAdapter.player?.player?.isCurrentWindowLive == true) {
+                        showLive()
+                        return true
+                    }
+                }
                 KeyEvent.KEYCODE_DPAD_LEFT -> {
                     if (keyAction == KeyEvent.ACTION_DOWN) {
-                        fastPositionJump(-15)
-                        val now = System.currentTimeMillis()
-                        if (now - lastShowToastTime1 > 5 * 1000) {
-                            ToastMgr.shortBottomCenter(context, "已快退15秒")
+                        val liveIndex = findLiveIndex()
+                        if (playerAdapter.player?.player?.isCurrentWindowLive == true
+                            || liveIndex >= 0
+                        ) {
+                            if (liveIndex > 0) {
+                                onSwitch(SwitchUrlChange(liveItem!!.urls[liveIndex - 1]))
+                                ToastMgr.shortBottomCenter(context, "已切换线路${liveIndex}")
+                            }
+                        } else {
+                            fastPositionJump(-15)
+                            val now = System.currentTimeMillis()
+                            if (now - lastShowToastTime1 > 5 * 1000) {
+                                ToastMgr.shortBottomCenter(context, "已快退15秒")
+                            }
+                            lastShowToastTime1 = now
                         }
-                        lastShowToastTime1 = now
                     }
                     return true
                 }
                 KeyEvent.KEYCODE_DPAD_RIGHT -> {
                     if (keyAction == KeyEvent.ACTION_DOWN) {
-                        fastPositionJump(15)
-                        val now = System.currentTimeMillis()
-                        if (now - lastShowToastTime2 > 5 * 1000) {
-                            ToastMgr.shortBottomCenter(context, "已快进15秒")
+                        val liveIndex = findLiveIndex()
+                        if (playerAdapter.player?.player?.isCurrentWindowLive == true
+                            || liveIndex >= 0
+                        ) {
+                            if (liveIndex >= 0 && liveIndex < liveItem!!.urls.size - 1) {
+                                onSwitch(SwitchUrlChange(liveItem!!.urls[liveIndex + 1]))
+                                ToastMgr.shortBottomCenter(context, "已切换线路${liveIndex + 2}")
+                            }
+                        } else {
+                            fastPositionJump(15)
+                            val now = System.currentTimeMillis()
+                            if (now - lastShowToastTime2 > 5 * 1000) {
+                                ToastMgr.shortBottomCenter(context, "已快进15秒")
+                            }
+                            lastShowToastTime2 = now
                         }
-                        lastShowToastTime2 = now
                     }
                     return true
                 }
@@ -416,6 +478,19 @@ class PlaybackVideoFragment : VideoSupportFragment(),
             }
         }
         return super.onInterceptInputEvent(event)
+    }
+
+    private fun findLiveIndex(): Int {
+        var index = -1
+        if (liveItem == null || liveItem!!.urls.isNullOrEmpty()) {
+            return index
+        }
+        liveItem!!.urls.forEachIndexed { i, s ->
+            if (s == playData?.url) {
+                index = i
+            }
+        }
+        return index;
     }
 
     override fun onResume() {
@@ -568,7 +643,7 @@ class PlaybackVideoFragment : VideoSupportFragment(),
         playData?.let {
             mTransportControlGlue.title = "\n" + it.title
             mTransportControlGlue.subtitle = it.url
-            playerAdapter.setDataSource(it.url, it.headers)
+            playerAdapter.setDataSource(it.url, it.headers, it.subtitle)
         }
         hideControlsOverlay(true)
     }

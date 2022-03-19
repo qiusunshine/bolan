@@ -99,5 +99,4 @@ public class ExoPlayerView extends PlayerView {
     public void setAutoShowController(boolean autoShowController) {
         this.autoShowController = autoShowController;
     }
-
 }

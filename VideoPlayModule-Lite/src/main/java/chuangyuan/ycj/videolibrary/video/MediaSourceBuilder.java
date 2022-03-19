@@ -44,10 +44,22 @@ public class MediaSourceBuilder {
      */
     protected MediaSourceEventListener sourceEventListener = null;
     private int indexType = -1;
-    private List<String> videoUri;
+
+    protected List<String> videoUri;
     private int loopingCount = 0;
 
     protected Map<String ,String> headers;
+    protected String subtitle;
+
+    public List<String> getAudioUrls() {
+        return audioUrls;
+    }
+
+    public void setAudioUrls(List<String> audioUrls) {
+        this.audioUrls = audioUrls;
+    }
+
+    protected List<String> audioUrls;
 
     /***
      * 初始化
@@ -264,6 +276,11 @@ public class MediaSourceBuilder {
         return videoUri;
     }
 
+    public void setVideoUri(List<String> videoUri) {
+        this.videoUri = videoUri;
+    }
+
+
     /**
      * 用于通知自适应的回调接口获取视频线路名称
      *
@@ -298,5 +315,13 @@ public class MediaSourceBuilder {
 
     public void setHeaders(Map<String, String> headers) {
         this.headers = headers;
+    }
+
+    public String getSubtitle() {
+        return subtitle;
+    }
+
+    public void setSubtitle(String subtitle) {
+        this.subtitle = subtitle;
     }
 }

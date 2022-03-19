@@ -14,6 +14,16 @@ public class DlanUrlDTO {
     private Map<String, String> headers;
     private int jumpStartDuration, jumpEndDuration;
 
+    /**
+     * 字幕
+     */
+    private String subtitle;
+
+    /**
+     * 弹幕
+     */
+    private String danmu;
+
     public DlanUrlDTO() {
     }
 
@@ -67,5 +77,21 @@ public class DlanUrlDTO {
 
     public void setTitle(String title) {
         this.title = title;
+    }
+
+    public String getSubtitle() {
+        return subtitle;
+    }
+
+    public void setSubtitle(String subtitle) {
+        this.subtitle = subtitle;
+    }
+
+    public String getDanmu() {
+        return danmu;
+    }
+
+    public void setDanmu(String danmu) {
+        this.danmu = danmu;
     }
 }

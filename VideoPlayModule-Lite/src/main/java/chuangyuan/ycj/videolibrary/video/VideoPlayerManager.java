@@ -43,6 +43,7 @@ public class VideoPlayerManager {
     private ManualPlayer mVideoPlayer;
     private boolean isClick = false;
     public static float PLAY_SPEED = 1f;
+    public static boolean tempFastPlay;
 
     private VideoPlayerManager() {
     }
@@ -338,9 +339,46 @@ public class VideoPlayerManager {
          *@return Builder
          */
         public Builder setPlayUri(@NonNull String uri, Map<String, String> headers) {
+            return setPlayUri(uri, headers, null);
+        }
+
+        /***
+         * 设置播放路径
+         * @param uri 路径
+         *@return Builder
+         */
+        public Builder setPlayUri(@NonNull String uri, Map<String, String> headers, String subtitle) {
             initMediaSourceBuilder();
             mediaSourceBuilder.setHeaders(headers);
+            mediaSourceBuilder.setSubtitle(subtitle);
             mediaSourceBuilder.setMediaUri(Uri.parse(uri));
+            return this;
+        }
+
+        /***
+         * 设置播放路径
+         *@return Builder
+         */
+        public Builder setPlayUri(int index, @NonNull String[] videoUri, @NonNull String[] name, Map<String, String> headers) {
+            return setPlayUri(index, videoUri, name, headers, null);
+        }
+
+        /***
+         * 设置播放路径
+         *@return Builder
+         */
+        public Builder setPlayUri(int index, @NonNull String[] videoUri, @NonNull String[] name, Map<String, String> headers, String subtitle) {
+            initMediaSourceBuilder();
+            mediaSourceBuilder.setHeaders(headers);
+            mediaSourceBuilder.setSubtitle(subtitle);
+            mediaSourceBuilder.setMediaSwitchUri(Arrays.asList(videoUri), index);
+            view.setSwitchName(Arrays.asList(name), 0);
+            return this;
+        }
+
+        public Builder setAudioUrls(List<String> audioUrls){
+            initMediaSourceBuilder();
+            mediaSourceBuilder.setAudioUrls(audioUrls);
             return this;
         }
 

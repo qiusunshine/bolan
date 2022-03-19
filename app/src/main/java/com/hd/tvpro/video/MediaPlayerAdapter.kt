@@ -50,6 +50,7 @@ class MediaPlayerAdapter constructor(
 
     var mMediaSourceUri: String? = null
     var headers: Map<String, String>? = null
+    var subtitle: String? = null
     var mHasDisplay = false
     var mBufferedProgress: Long = 0
     var playStartTask: Runnable? = null
@@ -245,15 +246,17 @@ class MediaPlayerAdapter constructor(
 
     override fun onDetachedFromHost() {
         player?.let {
-            PreferenceMgr.put(mContext, memUrlKey, mMediaSourceUri)
-            var pos = 0L
-            if (it.duration - it.currentPosition > 3 * 60 * 1000 && it.duration > 10 * 60 * 1000 && it.currentPosition > 3 * 60 * 1000) {
-                //最后还剩3分钟不管
-                //总时长不超过10分钟不管
-                //播放时长没超过3分钟不管
-                pos = it.currentPosition
+            if (player?.player?.isCurrentWindowLive != true) {
+                PreferenceMgr.put(mContext, memUrlKey, mMediaSourceUri)
+                var pos = 0L
+                if (it.duration - it.currentPosition > 3 * 60 * 1000 && it.duration > 10 * 60 * 1000 && it.currentPosition > 3 * 60 * 1000) {
+                    //最后还剩3分钟不管
+                    //总时长不超过10分钟不管
+                    //播放时长没超过3分钟不管
+                    pos = it.currentPosition
+                }
+                PreferenceMgr.put(mContext, memPosKey, pos)
             }
-            PreferenceMgr.put(mContext, memPosKey, pos)
         }
         if (mSurfaceHolderGlueHost != null) {
             mSurfaceHolderGlueHost!!.setSurfaceHolderCallback(null)
@@ -389,12 +392,17 @@ class MediaPlayerAdapter constructor(
      * otherwise.
      * @see MediaPlayer.setDataSource
      */
-    fun setDataSource(uri: String?, headers: Map<String, String>?): Boolean {
+    fun setDataSource(
+        uri: String?,
+        headers: Map<String, String>?,
+        subtitle: String? = null
+    ): Boolean {
         if (if (uri != null) mMediaSourceUri == uri else true) {
             return false
         }
         mMediaSourceUri = uri
         this.headers = headers
+        this.subtitle = subtitle
         prepareMediaForPlaying()
         return true
     }
@@ -408,7 +416,8 @@ class MediaPlayerAdapter constructor(
                     try {
                         it.setPlayUri(
                             mMediaSourceUri!!,
-                            headers
+                            headers,
+                            subtitle
                         )
                         val memUrl = PreferenceMgr.getString(mContext, memUrlKey, "")
                         if (StringUtil.isNotEmpty(memUrl) && memUrl.equals(mMediaSourceUri)) {

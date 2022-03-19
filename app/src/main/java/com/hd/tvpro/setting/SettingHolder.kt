@@ -54,7 +54,7 @@ class SettingHolder constructor(
             if (liveItem != null && liveItem.urls.isNotEmpty()) {
                 val switchOption = SettingOption("线路切换")
                 for (item in liveItem.urls.withIndex()) {
-                    switchOption.mRightList.add("线路${item.index}")
+                    switchOption.mRightList.add("线路${item.index + 1}")
                 }
                 settingArrayList.add(switchOption)
             }

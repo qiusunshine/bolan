@@ -67,8 +67,9 @@ class WebController {
         return try {
             val sd = JSON.parseObject(data)
             val url = sd.getString("url")
+            val subtitle: String? = sd.getString("subtitle")
             if (StringUtil.isNotEmpty(url)) {
-                EventBus.getDefault().post(PlayUrlChange(url))
+                EventBus.getDefault().post(PlayUrlChange(url, subtitle))
             }
             "ok"
         } catch (e: Exception) {

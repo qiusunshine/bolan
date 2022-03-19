@@ -5,4 +5,4 @@ package com.hd.tvpro.event
  * 日期：On 2022/1/14
  * 时间：At 22:54
  */
-class PlayUrlChange(var url: String)
+class PlayUrlChange(var url: String, var subtitle: String?)

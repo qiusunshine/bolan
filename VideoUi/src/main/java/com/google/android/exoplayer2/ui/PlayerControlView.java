@@ -250,6 +250,14 @@ public class PlayerControlView extends FrameLayout {
     ExoPlayerLibraryInfo.registerModule("goog.exo.ui");
   }
 
+  public PlayPauseListener getPlayPauseListener() {
+    return playPauseListener;
+  }
+
+  public void setPlayPauseListener(PlayPauseListener playPauseListener) {
+    this.playPauseListener = playPauseListener;
+  }
+
   /** Listener to be notified about changes of the visibility of the UI control. */
   public interface VisibilityListener {
 
@@ -342,6 +350,7 @@ public class PlayerControlView extends FrameLayout {
   private long[] extraAdGroupTimesMs;
   private boolean[] extraPlayedAdGroups;
   private long currentWindowOffset;
+  private PlayPauseListener playPauseListener;
 
   public PlayerControlView(Context context) {
     this(context, /* attrs= */ null);
@@ -842,6 +851,9 @@ public class PlayerControlView extends FrameLayout {
     }
     boolean requestPlayPauseFocus = false;
     boolean shouldShowPauseButton = shouldShowPauseButton();
+    if(playPauseListener != null){
+      playPauseListener.change(shouldShowPauseButton);
+    }
     if (playButton != null) {
       requestPlayPauseFocus |= shouldShowPauseButton && playButton.isFocused();
       playButton.setVisibility(shouldShowPauseButton ? GONE : VISIBLE);
@@ -1348,5 +1360,9 @@ public class PlayerControlView extends FrameLayout {
         controlDispatcher.dispatchSetShuffleModeEnabled(player, !player.getShuffleModeEnabled());
       }
     }
+  }
+
+  public interface PlayPauseListener{
+    void change(boolean playing);
   }
 }

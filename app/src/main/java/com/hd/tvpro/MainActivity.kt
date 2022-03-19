@@ -16,13 +16,13 @@ import android.widget.TextView
 import androidx.fragment.app.FragmentActivity
 import androidx.leanback.app.PlaybackVideoFragment
 import com.hd.tvpro.app.App
+import com.hd.tvpro.util.IPUtils
 import com.hd.tvpro.util.QRCodeUtil.createQRCodeBitmap
 import com.hd.tvpro.webserver.WebServer
 import com.pngcui.skyworth.dlna.service.MediaRenderService
 import com.pngcui.skyworth.dlna.util.CommonUtil
 import com.smarx.notchlib.NotchScreenManager
 import kotlinx.coroutines.*
-import utils.IPUtil
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.math.min
 
@@ -116,6 +116,14 @@ class MainActivity : FragmentActivity() {
 //        super.onBackPressed()
     }
 
+    fun dismissDialog(): Boolean {
+        if (dialog != null && dialog!!.isShowing) {
+            dialog?.dismiss()
+            return true
+        }
+        return false;
+    }
+
     override fun onPause() {
         super.onPause()
         isOnPause = true
@@ -164,7 +172,7 @@ class MainActivity : FragmentActivity() {
         tv_isp.text = "确认退出软件？"
         tv_isp.setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSize.toFloat())
         val tv_webadmin = exitView.findViewById<View>(R.id.tv_webadmin) as TextView
-        val ip = IPUtil.getIP(getContext())
+        val ip = IPUtils.getIP(getContext())
         val url = "http://$ip:12345"
         tv_webadmin.text = ("远程管理地址：\n$url")
         val mBitmap: Bitmap? = createQRCodeBitmap(url, 480, 480)

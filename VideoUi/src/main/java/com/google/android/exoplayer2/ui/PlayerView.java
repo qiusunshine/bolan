@@ -289,7 +289,7 @@ public class PlayerView extends FrameLayout implements AdViewProvider {
   private final ComponentListener componentListener;
   @Nullable protected final AspectRatioFrameLayout contentFrame;
   @Nullable private final View shutterView;
-  @Nullable protected View surfaceView;
+  @Nullable private final View surfaceView;
   private final boolean surfaceViewIgnoresVideoAspectRatio;
   @Nullable private final ImageView artworkView;
   @Nullable private final SubtitleView subtitleView;
@@ -1576,19 +1576,5 @@ public class PlayerView extends FrameLayout implements AdViewProvider {
     public void onVisibilityChange(int visibility) {
       updateContentDescription();
     }
-  }
-
-  public void setSurfaceView(SurfaceView view){
-    surfaceView = view;
-//    ViewGroup.LayoutParams params =
-//            new ViewGroup.LayoutParams(
-//                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-//    surfaceView.setLayoutParams(params);
-//    // We don't want surfaceView to be clickable separately to the PlayerView itself, but we do
-//    // want to register as an OnClickListener so that surfaceView implementations can propagate
-//    // click events up to the PlayerView by calling their own performClick method.
-//    surfaceView.setOnClickListener(componentListener);
-//    surfaceView.setClickable(false);
-//    contentFrame.addView(surfaceView, 0);
   }
 }
