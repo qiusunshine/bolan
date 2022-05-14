@@ -39,6 +39,7 @@ import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 import service.model.LiveItem
+import utils.FileUtil
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.coroutines.EmptyCoroutineContext
@@ -93,7 +94,7 @@ class PlaybackVideoFragment : VideoSupportFragment(),
             liveListHolder!!.hide()
             return true
         }
-        if (isControlsOverlayVisible) {
+        if (isControlsOverlayVisible && view != null) {
             hideControlsOverlay(false)
             return true
         }
@@ -242,6 +243,7 @@ class PlaybackVideoFragment : VideoSupportFragment(),
         })
         //定时器
         scope.launch {
+            var count = 1
             while (true) {
                 try {
                     if (App.INSTANCE.getDevInfo()?.status == true) {
@@ -264,6 +266,18 @@ class PlaybackVideoFragment : VideoSupportFragment(),
                     if (e is CancellationException) {
                         break
                     }
+                }
+                try {
+                    if (count == 1) {
+                        count++
+                    } else {
+                        count--
+                        if (playerAdapter?.player != null && playerAdapter?.player?.isPlaying == true) {
+                            playerAdapter?.memoryPosition()
+                            Log.d(TAG, "initDlan: memoryPosition")
+                        }
+                    }
+                } catch (e: Exception) {
                 }
                 delay(1000)
             }
@@ -387,10 +401,15 @@ class PlaybackVideoFragment : VideoSupportFragment(),
         if (activity?.isFinishing == true) {
             return
         }
-        playData = DlanUrlDTO()
+        if(playData == null) {
+            playData = DlanUrlDTO()
+        }
+        val urlEmpty = media.url.isNullOrEmpty()
         playData?.apply {
-            url = media.url
-            title = media.url
+            if (!urlEmpty){
+                url = media.url
+                title = if (media.name.isNullOrEmpty()) media.url else media.name
+            }
             subtitle = media.subtitle
         }
         play(true)
@@ -641,8 +660,9 @@ class PlaybackVideoFragment : VideoSupportFragment(),
             (activity as MainActivity).hideHelpDialog()
         }
         playData?.let {
-            mTransportControlGlue.title = "\n" + it.title
-            mTransportControlGlue.subtitle = it.url
+            val t = if(it.title.isNullOrEmpty() || it.title == it.url) FileUtil.getFileName(it.url) else it.title
+            mTransportControlGlue.title = "\n" + t
+            mTransportControlGlue.subtitle = it.subtitle
             playerAdapter.setDataSource(it.url, it.headers, it.subtitle)
         }
         hideControlsOverlay(true)

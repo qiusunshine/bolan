@@ -2,11 +2,13 @@ package com.hd.tvpro
 
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.util.TypedValue
 import android.view.*
 import android.widget.Button
@@ -32,11 +34,15 @@ import kotlin.math.min
  */
 class MainActivity : FragmentActivity() {
     var isOnPause = false
-    private val fragment = PlaybackVideoFragment()
     private var dialog: PopupWindow? = null
 
     fun getContext(): Context {
         return this
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+//        super.onConfigurationChanged(newConfig)
+        Log.d(TAG, "onConfigurationChanged: ")
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,6 +51,8 @@ class MainActivity : FragmentActivity() {
             NotchScreenManager.getInstance().setDisplayInNotch(this)
         } catch (e: Exception) {
         }
+        val fragment = PlaybackVideoFragment()
+        Log.d(TAG, "onCreate: $this")
         if (savedInstanceState == null) {
             supportFragmentManager.beginTransaction()
                 .replace(android.R.id.content, fragment)
@@ -87,8 +95,15 @@ class MainActivity : FragmentActivity() {
         super.onWindowFocusChanged(hasFocus)
     }
 
+    private fun getFragment(): PlaybackVideoFragment? {
+        return if (supportFragmentManager.fragments.isNullOrEmpty()) null else {
+            val size = supportFragmentManager.fragments.size
+            supportFragmentManager.fragments[size - 1] as PlaybackVideoFragment
+        }
+    }
+
     override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-        if (ev != null && fragment.dispatchTouchEvent(ev)) {
+        if (ev != null && getFragment()?.dispatchTouchEvent(ev) == true) {
             //fragment拦截了
             return true
         }
@@ -96,7 +111,7 @@ class MainActivity : FragmentActivity() {
     }
 
     override fun onKeyDown(keyCode: Int, ev: KeyEvent?): Boolean {
-        if (ev != null && fragment.onKeyDown(keyCode, ev)) {
+        if (ev != null && getFragment()?.onKeyDown(keyCode, ev) == true) {
             //fragment拦截了
             return true
         }
@@ -108,7 +123,7 @@ class MainActivity : FragmentActivity() {
             dialog?.dismiss()
             return
         }
-        if (fragment.onBackPressed()) {
+        if (getFragment()?.onBackPressed() == true) {
             //fragment拦截了
             return
         }
@@ -255,5 +270,21 @@ class MainActivity : FragmentActivity() {
         if (dialog != null && dialog!!.isShowing) {
             dialog?.dismiss()
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        try {
+            val intent = Intent(
+                this,
+                MediaRenderService::class.java
+            )
+            stopService(intent)
+        } catch (e: Exception) {
+        }
+    }
+
+    companion object {
+        private const val TAG = "MainActivity"
     }
 }

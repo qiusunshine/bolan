@@ -245,6 +245,17 @@ class MediaPlayerAdapter constructor(
     }
 
     override fun onDetachedFromHost() {
+        memoryPosition()
+        if (mSurfaceHolderGlueHost != null) {
+            mSurfaceHolderGlueHost!!.setSurfaceHolderCallback(null)
+            mSurfaceHolderGlueHost = null
+        }
+
+        reset()
+        release()
+    }
+
+    fun memoryPosition() {
         player?.let {
             if (player?.player?.isCurrentWindowLive != true) {
                 PreferenceMgr.put(mContext, memUrlKey, mMediaSourceUri)
@@ -258,13 +269,6 @@ class MediaPlayerAdapter constructor(
                 PreferenceMgr.put(mContext, memPosKey, pos)
             }
         }
-        if (mSurfaceHolderGlueHost != null) {
-            mSurfaceHolderGlueHost!!.setSurfaceHolderCallback(null)
-            mSurfaceHolderGlueHost = null
-        }
-
-        reset()
-        release()
     }
 
     protected fun onError(what: Int, extra: Int): Boolean {
@@ -397,7 +401,7 @@ class MediaPlayerAdapter constructor(
         headers: Map<String, String>?,
         subtitle: String? = null
     ): Boolean {
-        if (if (uri != null) mMediaSourceUri == uri else true) {
+        if (uri == null) {
             return false
         }
         mMediaSourceUri = uri

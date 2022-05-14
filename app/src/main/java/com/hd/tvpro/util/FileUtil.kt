@@ -1,7 +1,11 @@
 package utils
 
+import android.util.Log
 import com.hd.tvpro.app.App
+import com.hd.tvpro.util.StringUtil
 import java.io.File
+import java.io.UnsupportedEncodingException
+import java.net.URLDecoder
 
 /**
  * @author fisher
@@ -48,5 +52,34 @@ object FileUtil {
         if (rootFile.exists()) {
             rootFile.delete()
         }
+    }
+
+    fun getFileName(url0: String): String {
+        var url = url0
+        if (StringUtil.isEmpty(url)) {
+            return url
+        }
+        var s = url.split("#").toTypedArray()
+        url = s[0]
+        s = url.split("\\?").toTypedArray()
+        url = s[0]
+        val start = url.lastIndexOf("/")
+        return if (start != -1 && start < url.length - 1) {
+            decodeUrl(url.substring(start + 1), "UTF-8")
+        } else {
+            url0
+        }
+    }
+
+    fun decodeUrl(str0: String, code: String?): String { //url解码
+        var str = str0
+        try {
+            str = str.replace("%(?![0-9a-fA-F]{2})".toRegex(), "%25")
+            str = str.replace("\\+".toRegex(), "%2B")
+            str = URLDecoder.decode(str, code)
+        } catch (e: UnsupportedEncodingException) {
+            Log.e("FileUtil", "decodeUrl: ", e)
+        }
+        return str
     }
 }
