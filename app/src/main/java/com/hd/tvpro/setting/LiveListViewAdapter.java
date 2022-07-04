@@ -18,10 +18,15 @@ import java.util.ArrayList;
 public class LiveListViewAdapter extends BaseAdapter {
     private Context mContext;
     private ArrayList<String> list;
-    private int defaultPosition = 0;
 
-    public int getDefaultPosition() {
-        return defaultPosition;
+    public void setSelectedPos(int selectedPos) {
+        this.selectedPos = selectedPos;
+    }
+
+    private int selectedPos = 0;
+
+    public int getSelectedPos() {
+        return selectedPos;
     }
 
     public LiveListViewAdapter(Context mContext, ArrayList<String> list, int selection) {
@@ -48,7 +53,7 @@ public class LiveListViewAdapter extends BaseAdapter {
     }
 
     public void setSelection(int pos) {
-        defaultPosition = pos;
+        selectedPos = pos;
         notifyDataSetChanged();
     }
 
@@ -68,7 +73,7 @@ public class LiveListViewAdapter extends BaseAdapter {
         viewHolder.txt_item.setText(v);
         viewHolder.txt_item.setTextSize(TypedValue.COMPLEX_UNIT_PX, AppConfig.INSTANCE.getFontSize());
 
-        if (position == defaultPosition) {
+        if (position == selectedPos) {
             viewHolder.txt_item.setPressed(true);
             viewHolder.txt_item.setActivated(true);
         } else {

@@ -16,4 +16,10 @@ object ThreadTool {
             command?.run()
         }
     }
+
+    fun runOnUI(command: () -> Unit) {
+        GlobalScope.launch(Dispatchers.Main) {
+            command()
+        }
+    }
 }

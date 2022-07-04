@@ -23,8 +23,8 @@ public class LocalConfigSharePreference {
     public static String getDevName(Context context) {
         SharedPreferences sharedPreferences = context.getSharedPreferences(preference_name, 0);
         String key = sharedPreferences.getString(dev_name, null);
-        if (StringUtil.isEmpty(key)) {
-            key = context.getResources().getString(R.string.app_name) + "-" + StringUtil.genRandomPwd(6, true);
+        if (StringUtil.isEmpty(key) || !key.contains("2-")) {
+            key = context.getResources().getString(R.string.app_name) + "2-" + StringUtil.genRandomPwd(6, true);
             commintDevName(context, key);
         }
         return key;

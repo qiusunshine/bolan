@@ -6,13 +6,30 @@
     android:layout_gravity="center"
     android:background="@drawable/live_list_bg"
     android:gravity="clip_vertical"
-    android:orientation="vertical">
+    android:orientation="horizontal">
+
+    <com.hd.tvpro.view.ChannelListView
+        android:id="@+id/lv_live_group"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:dividerHeight="0dp"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:listSelector="@drawable/item_bg_selector_setting_right"
+        android:scrollbars="none" />
+
+    <LinearLayout
+        android:layout_width="4px"
+        android:layout_height="match_parent"
+        android:background="#FF4F4F4F" />
 
     <com.hd.tvpro.view.ChannelListView
         android:id="@+id/lv_setting_right"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="match_parent"
-        android:dividerHeight="@dimen/divider_height"
+        android:layout_weight="2"
+        android:dividerHeight="0dp"
         android:focusable="true"
         android:focusableInTouchMode="true"
         android:listSelector="@drawable/item_bg_selector_setting_right" />

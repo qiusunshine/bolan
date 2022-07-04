@@ -88,4 +88,29 @@ public class HttpParser {
         }
         return str;
     }
+
+    public static String decodeUrl(String str) {//url解码
+        return decodeUrl(str, "UTF-8");
+    }
+
+    public static Map<String, String> getEncodedHeaders(String url) {
+        if (StringUtil.isEmpty(url)) {
+            return null;
+        }
+        String[] s = url.split("##\\|");
+        if (s.length >= 2) {
+            String[] hd = s[1].split("&");
+            Map<String, String> headers = new HashMap<>();
+            for (String s1 : hd) {
+                String[] kv = s1.split("=");
+                if (kv.length < 2) {
+                    headers.put(decodeUrl(kv[0]), "");
+                } else {
+                    headers.put(decodeUrl(kv[0]), decodeUrl(kv[1]));
+                }
+            }
+            return headers;
+        }
+        return null;
+    }
 } 

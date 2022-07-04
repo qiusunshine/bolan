@@ -13,6 +13,7 @@ import com.yanzhenjie.andserver.annotation.ResponseBody
 import com.yanzhenjie.andserver.http.RequestBody
 import org.greenrobot.eventbus.EventBus
 import service.LiveModel
+import utils.FileUtil
 
 /**
  * 作者：By 15968
@@ -75,5 +76,11 @@ class WebController {
             e.printStackTrace()
             "error:" + e.message
         }
+    }
+
+    @PostMapping(path = ["/api/good/get"])
+    @ResponseBody
+    fun good(body: RequestBody): String {
+        return FileUtil.fileToString(LiveModel.goodFile)
     }
 }

@@ -16,6 +16,7 @@ import com.hd.tvpro.constants.AppConfig
 import com.hd.tvpro.event.SwitchUrlChange
 import com.hd.tvpro.util.PreferenceMgr
 import com.hd.tvpro.util.ShareUtil
+import com.hd.tvpro.util.ToastMgr
 import com.hd.tvpro.view.SelectListView
 import org.greenrobot.eventbus.EventBus
 import service.model.LiveItem
@@ -76,6 +77,11 @@ class SettingHolder constructor(
             dataOption.mRightList.add("重新扫描设备")
             settingArrayList.add(dataOption)
 
+            val startOption = SettingOption("开机启动")
+            startOption.mRightList.add("关闭")
+            startOption.mRightList.add("开启")
+            settingArrayList.add(startOption)
+
             val aboutOption = SettingOption("关于软件")
             aboutOption.mRightList.add("新版下载地址")
             aboutOption.mRightList.add("新方圆小棉袄")
@@ -118,6 +124,10 @@ class SettingHolder constructor(
                     val screenScale = PreferenceMgr.getInt(context, "screen", 0)
                     mAdapterSettingValue!!.setSelection(screenScale)
                 }
+                "开机启动" -> {
+                    val selfStart = PreferenceMgr.getBoolean(context, "selfStart", false)
+                    mAdapterSettingValue!!.setSelection(if (selfStart) 1 else 0)
+                }
                 "线路切换" -> {
                     for (item in liveItem!!.urls.withIndex()) {
                         if (item.value == nowUrl) {
@@ -146,6 +156,14 @@ class SettingHolder constructor(
                     "数据管理" -> {
                         settingUpdateListener.update(Option.RESET)
                         hide()
+                    }
+                    "开机启动" -> {
+                        PreferenceMgr.put(context, "selfStart", posval == 1)
+                        mAdapterSettingValue!!.setSelection(posval)
+                        ToastMgr.shortBottomCenter(
+                            context,
+                            "已" + (if (posval == 1) "开启" else "关闭") + "开机自启动"
+                        )
                     }
                     "线路切换" -> {
                         val url = liveItem!!.urls[posval]

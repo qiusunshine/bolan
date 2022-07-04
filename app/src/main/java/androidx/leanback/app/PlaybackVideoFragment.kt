@@ -2,10 +2,20 @@ package androidx.leanback.app
 
 import android.content.Context
 import android.graphics.Color
+import android.media.AudioManager
 import android.os.Bundle
+import android.provider.Settings
+import android.text.Spannable
+import android.text.SpannableString
+import android.text.style.ForegroundColorSpan
 import android.util.DisplayMetrics
 import android.util.Log
 import android.view.*
+import android.widget.FrameLayout
+import android.widget.ImageView
+import android.widget.ProgressBar
+import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.leanback.media.PlayerAdapter
 import androidx.leanback.widget.BaseGridView.OnTouchInterceptListener
 import androidx.leanback.widget.PlaybackControlsRow
@@ -16,6 +26,7 @@ import chuangyuan.ycj.videolibrary.widget.VideoPlayerView
 import com.alibaba.fastjson.JSON
 import com.google.android.exoplayer2.ui.CaptionStyleCompat
 import com.google.android.exoplayer2.ui.SubtitleView
+import com.google.android.exoplayer2.util.Util
 import com.hd.tvpro.MainActivity
 import com.hd.tvpro.R
 import com.hd.tvpro.app.App
@@ -38,11 +49,13 @@ import kotlinx.coroutines.*
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
+import service.LiveModel
 import service.model.LiveItem
 import utils.FileUtil
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.coroutines.EmptyCoroutineContext
+import kotlin.math.abs
 import kotlin.math.floor
 
 
@@ -66,6 +79,52 @@ class PlaybackVideoFragment : VideoSupportFragment(),
     private var liveItem: LiveItem? = null
 
     private var webDlanData: DlanUrlDTO? = null
+
+
+    private var firstTouch = false
+    private var volumeControl = false
+    private var toSeek = false
+    private var isNowVerticalFullScreen = false
+    private var screeHeightPixels: Int = 1
+    private var screeWidthPixels: Int = 1
+    private var formatBuilder: java.lang.StringBuilder = StringBuilder()
+    private var formatter: Formatter = Formatter(formatBuilder, Locale.getDefault())
+
+    /***控制音频 */
+    private var exoAudioLayout: android.view.View? = null
+
+    private lateinit var dialogProLayout: View
+    private lateinit var videoDialogProText: TextView
+
+    /***亮度布局 */
+    private lateinit var exoBrightnessLayout: android.view.View
+
+    /***水印,封面图占位,显示音频和亮度布图 */
+    private lateinit var videoAudioImg: ImageView
+
+    /***水印,封面图占位,显示音频和亮度布图 */
+    private lateinit var videoBrightnessImg: ImageView
+
+    /***显示音频和亮度 */
+    private lateinit var videoAudioPro: ProgressBar
+
+    /***显示音频和亮度 */
+    private lateinit var videoBrightnessPro: ProgressBar
+
+    /***音量的最大值 */
+    private var mMaxVolume = 0
+
+    /*** 亮度值  */
+    private var brightness = -1f
+
+    /**** 当前音量   */
+    private var volume = -1
+
+    /*** 新的播放进度  */
+    private var newPosition: Long = -1
+
+    /*** 音量管理  */
+    private var audioManager: AudioManager? = null
 
     fun dispatchTouchEvent(ev: MotionEvent): Boolean {
         return false
@@ -110,6 +169,11 @@ class PlaybackVideoFragment : VideoSupportFragment(),
         playerAdapter.playStartTask = Runnable {
             if (activity is MainActivity) {
                 (activity as MainActivity).hideHelpDialog()
+            }
+            if (liveItem != null && !liveItem!!.urls.isNullOrEmpty() && playerAdapter.player?.player?.isCurrentWindowLive == true) {
+                playerAdapter.mMediaSourceUri?.let {
+                    LiveModel.addGoodUrl(requireContext(), liveItem!!.name, it)
+                }
             }
         }
         playerAdapter.setRepeatAction(PlaybackControlsRow.RepeatAction.INDEX_NONE)
@@ -240,6 +304,14 @@ class PlaybackVideoFragment : VideoSupportFragment(),
                     DLNAGenaEventBrocastFactory.sendPauseStateEvent(App.INSTANCE)
                 }
             }
+
+            override fun onError(adapter: PlayerAdapter?, errorCode: Int, errorMessage: String?) {
+                if (liveItem != null && !liveItem!!.urls.isNullOrEmpty()) {
+                    playerAdapter.mMediaSourceUri?.let {
+                        LiveModel.clearGoodUrl(requireContext(), it)
+                    }
+                }
+            }
         })
         //定时器
         scope.launch {
@@ -303,11 +375,216 @@ class PlaybackVideoFragment : VideoSupportFragment(),
         })
     }
 
+    /**
+     * 手势结束
+     */
+    @Synchronized
+    private fun endGesture() {
+        if (exoAudioLayout == null) {
+            return
+        }
+        volume = -1
+        brightness = -1f
+        showGestureView(View.GONE)
+        if (newPosition >= 0) {
+            if (playerAdapter.player?.player?.isCurrentWindowLive == true) {
+                newPosition = -1
+                return
+            }
+            playerAdapter.seekTo(newPosition)
+            videoView.seekFromPlayer(newPosition)
+            newPosition = -1
+        }
+    }
+
+    /***
+     * 显示隐藏手势布局
+     *
+     * @param visibility 状态
+     */
+    private fun showGestureView(visibility: Int) {
+        if (exoAudioLayout == null) {
+            return
+        }
+        exoAudioLayout!!.visibility = visibility
+        exoBrightnessLayout.visibility = visibility
+        dialogProLayout.visibility = visibility
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         //简单支持手势操作
         gestureDetector = GestureDetector(context, object :
             GestureDetector.SimpleOnGestureListener() {
+
+            init {
+                audioManager = activity!!.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+                mMaxVolume = audioManager!!.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+                val displayMetrics = activity!!.resources.displayMetrics
+                screeHeightPixels = displayMetrics.heightPixels
+                screeWidthPixels = displayMetrics.widthPixels
+                brightness = getScreenBrightness(activity!!) / 255.0f
+            }
+
+            /**
+             * 1.获取系统默认屏幕亮度值 屏幕亮度值范围（0-255）
+             */
+            private fun getScreenBrightness(context: Context): Int {
+                val contentResolver = context.contentResolver
+                val defVal = 125
+                return Settings.System.getInt(
+                    contentResolver,
+                    Settings.System.SCREEN_BRIGHTNESS, defVal
+                )
+            }
+
+            private fun checkView() {
+                if (exoAudioLayout == null) {
+                    val videoProgressId =
+                        chuangyuan.ycj.videolibrary.R.layout.simple_exo_video_progress_dialog
+                    val audioId: Int =
+                        chuangyuan.ycj.videolibrary.R.layout.simple_video_audio_brightness_dialog
+                    val brightnessId: Int =
+                        chuangyuan.ycj.videolibrary.R.layout.simple_video_audio_brightness_dialog
+                    dialogProLayout = FrameLayout.inflate(context, videoProgressId, null)
+                    exoAudioLayout = FrameLayout.inflate(context, audioId, null)
+                    exoBrightnessLayout = FrameLayout.inflate(context, brightnessId, null)
+                    exoAudioLayout!!.visibility = FrameLayout.GONE
+                    exoBrightnessLayout.visibility = FrameLayout.GONE
+                    dialogProLayout.visibility = FrameLayout.GONE
+                    videoView.addView(dialogProLayout, videoView.childCount)
+                    videoView.addView(exoAudioLayout, videoView.childCount)
+                    videoView.addView(exoBrightnessLayout, videoView.childCount)
+                    videoDialogProText =
+                        dialogProLayout.findViewById(chuangyuan.ycj.videolibrary.R.id.exo_video_dialog_pro_text)
+                    videoAudioImg =
+                        exoAudioLayout!!.findViewById(chuangyuan.ycj.videolibrary.R.id.exo_video_audio_brightness_img)
+                    videoAudioPro =
+                        exoAudioLayout!!.findViewById(chuangyuan.ycj.videolibrary.R.id.exo_video_audio_brightness_pro)
+                    videoBrightnessImg =
+                        exoBrightnessLayout.findViewById(chuangyuan.ycj.videolibrary.R.id.exo_video_audio_brightness_img)
+                    videoBrightnessPro =
+                        exoBrightnessLayout.findViewById(chuangyuan.ycj.videolibrary.R.id.exo_video_audio_brightness_pro)
+                }
+            }
+
+            private fun setTimePosition(seekTime: SpannableString) {
+                dialogProLayout.visibility = View.VISIBLE
+                videoDialogProText.text = seekTime
+            }
+
+            private fun setVolumePosition(mMaxVolume: Int, currIndex: Int) {
+                if (exoAudioLayout != null) {
+                    if (exoAudioLayout!!.visibility != View.VISIBLE) {
+                        videoAudioPro.max = mMaxVolume
+                    }
+                    exoAudioLayout!!.visibility = View.VISIBLE
+                    videoAudioPro.progress = currIndex
+                    videoAudioImg.setImageResource(if (currIndex == 0) chuangyuan.ycj.videolibrary.R.drawable.ic_volume_off_white_48px else chuangyuan.ycj.videolibrary.R.drawable.ic_volume_up_white_48px)
+                }
+            }
+
+            private fun setBrightnessPosition(mMaxVolume: Int, currIndex: Int) {
+                if (exoBrightnessLayout.visibility != View.VISIBLE) {
+                    videoBrightnessPro.max = mMaxVolume
+                    videoBrightnessImg.setImageResource(chuangyuan.ycj.videolibrary.R.drawable.ic_brightness_6_white_48px)
+                }
+                exoBrightnessLayout.visibility = View.VISIBLE
+                videoBrightnessPro.progress = currIndex
+            }
+
+
+            /****
+             * 滑动进度
+             *
+             * @param  seekTimePosition  滑动的时间
+             * @param  duration         视频总长
+             * @param  seekTime    滑动的时间 格式化00:00
+             * @param  totalTime    视频总长 格式化00:00
+             */
+            private fun showProgressDialog(
+                nowTime: String,
+                seekTimePosition: Long,
+                duration: Long,
+                seekTime: String,
+                totalTime: String
+            ) {
+                checkView()
+                newPosition = seekTimePosition
+                if (playerAdapter.player?.player?.isCurrentWindowLive == true) {
+                    return
+                }
+                val stringBuilder = "$nowTime/$seekTime"
+                val blueSpan = ForegroundColorSpan(
+                    ContextCompat.getColor(
+                        activity!!, R.color.simple_exo_style_color
+                    )
+                )
+                val spannableString = SpannableString(stringBuilder)
+                spannableString.setSpan(
+                    blueSpan,
+                    nowTime.length,
+                    stringBuilder.length,
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+                setTimePosition(spannableString)
+            }
+
+            /**
+             * 滑动改变声音大小
+             *
+             * @param percent percent 滑动
+             */
+            private fun showVolumeDialog(percent: Float) {
+                checkView()
+                if (volume == -1) {
+                    volume = audioManager!!.getStreamVolume(AudioManager.STREAM_MUSIC)
+                    if (volume < 0) {
+                        volume = 0
+                    }
+                }
+                var index: Int = (percent * mMaxVolume).toInt() + volume
+                if (index > mMaxVolume) {
+                    index = mMaxVolume
+                } else if (index < 0) {
+                    index = 0
+                }
+                // 变更进度条 // int i = (int) (index * 1.5 / mMaxVolume * 100);
+                //  String s = i + "%";  // 变更声音
+                audioManager!!.setStreamVolume(AudioManager.STREAM_MUSIC, index, 0)
+                setVolumePosition(mMaxVolume, index)
+            }
+
+            /**
+             * 滑动改变亮度
+             *
+             * @param percent 值大小
+             */
+            @Synchronized
+            private fun showBrightnessDialog(percent: Float) {
+                checkView()
+                if (brightness < 0) {
+                    brightness = activity!!.window.attributes.screenBrightness
+                    if (brightness <= 0.00f) {
+                        brightness = 0.50f
+                    } else if (brightness < 0.01f) {
+                        brightness = 0.01f
+                    }
+                }
+                val lpa = activity!!.window.attributes
+                lpa.screenBrightness = brightness + percent
+                if (lpa.screenBrightness > 1.0) {
+                    lpa.screenBrightness = 1.0f
+                } else if (lpa.screenBrightness < 0.01f) {
+                    lpa.screenBrightness = 0.01f
+                }
+                activity!!.window.attributes = lpa
+                setBrightnessPosition(
+                    100,
+                    (lpa.screenBrightness * 100).toInt()
+                )
+            }
+
             override fun onSingleTapConfirmed(e: MotionEvent?): Boolean {
                 if (isControlsOverlayVisible) {
 //                    hideControlsOverlay(true)
@@ -355,6 +632,71 @@ class PlaybackVideoFragment : VideoSupportFragment(),
                 onDoubleTapListener.onDoubleTap(e, tapArea)
                 return true
             }
+
+            override fun onDown(e: MotionEvent?): Boolean {
+                firstTouch = true
+                return super.onDown(e)
+            }
+
+            /**
+             * 滑动
+             */
+            override fun onScroll(
+                e1: MotionEvent,
+                e2: MotionEvent,
+                distanceX: Float,
+                distanceY: Float
+            ): Boolean {
+                if (e2.pointerCount > 1) {
+                    return false
+                }
+                val mOldX = e1.x
+                val mOldY = e1.y
+                val deltaY = mOldY - e2.y
+                var deltaX = mOldX - e2.x
+                if (firstTouch) {
+                    toSeek = abs(distanceX) >= abs(distanceY)
+                    if (isNowVerticalFullScreen) {
+                        volumeControl = mOldX > screeWidthPixels * 0.5f
+                        if (mOldY < screeHeightPixels * 0.1f) {
+                            return false
+                        }
+                    } else {
+                        volumeControl = mOldX > screeHeightPixels * 0.5f
+                        if (mOldY < screeWidthPixels * 0.1f) {
+                            return false
+                        }
+                    }
+                    firstTouch = false
+                }
+                if (toSeek) {
+                    deltaX = -deltaX
+                    val position: Long = playerAdapter.currentPosition
+                    val duration: Long = playerAdapter.duration
+                    var newPosition: Long =
+                        (position + deltaX * duration / screeHeightPixels / 3).toLong()
+                    if (newPosition > duration) {
+                        newPosition = duration
+                    } else if (newPosition <= 0) {
+                        newPosition = 0
+                    }
+                    showProgressDialog(
+                        Util.getStringForTime(formatBuilder, formatter, position),
+                        newPosition,
+                        duration,
+                        Util.getStringForTime(formatBuilder, formatter, newPosition),
+                        Util.getStringForTime(formatBuilder, formatter, duration)
+                    )
+                } else {
+                    val percent: Float = deltaY / screeHeightPixels
+                    if (volumeControl) {
+                        showVolumeDialog(percent)
+                    } else {
+                        showBrightnessDialog(percent)
+                    }
+                }
+                return super.onScroll(e1, e2, distanceX, distanceY)
+            }
         })
 
         if (!EventBus.getDefault().isRegistered(this)) {
@@ -371,7 +713,8 @@ class PlaybackVideoFragment : VideoSupportFragment(),
         useDlan = true
         playData = DlanUrlDTO()
         playData?.apply {
-            url = media.url
+            url = media.url?.split("##\\|")?.get(0) ?: media.url
+            headers = HttpParser.getEncodedHeaders(media.url)
             title = media.title
         }
         play()
@@ -401,12 +744,12 @@ class PlaybackVideoFragment : VideoSupportFragment(),
         if (activity?.isFinishing == true) {
             return
         }
-        if(playData == null) {
+        if (playData == null) {
             playData = DlanUrlDTO()
         }
         val urlEmpty = media.url.isNullOrEmpty()
         playData?.apply {
-            if (!urlEmpty){
+            if (!urlEmpty) {
                 url = media.url
                 title = if (media.name.isNullOrEmpty()) media.url else media.name
             }
@@ -509,13 +852,18 @@ class PlaybackVideoFragment : VideoSupportFragment(),
                 index = i
             }
         }
-        return index;
+        return index
     }
 
     override fun onResume() {
         super.onResume()
         val mOnTouchInterceptListener =
             OnTouchInterceptListener { event ->
+                when (event.action and MotionEvent.ACTION_MASK) {
+                    MotionEvent.ACTION_UP -> endGesture()
+                    else -> {
+                    }
+                }
                 gestureDetector.onTouchEvent(event) || onInterceptInputEvent(
                     event
                 )
@@ -660,7 +1008,8 @@ class PlaybackVideoFragment : VideoSupportFragment(),
             (activity as MainActivity).hideHelpDialog()
         }
         playData?.let {
-            val t = if(it.title.isNullOrEmpty() || it.title == it.url) FileUtil.getFileName(it.url) else it.title
+            val t =
+                if (it.title.isNullOrEmpty() || it.title == it.url) FileUtil.getFileName(it.url) else it.title
             mTransportControlGlue.title = "\n" + t
             mTransportControlGlue.subtitle = it.subtitle
             playerAdapter.setDataSource(it.url, it.headers, it.subtitle)
@@ -728,7 +1077,7 @@ class PlaybackVideoFragment : VideoSupportFragment(),
         }
         liveListHolder = null
         LiveListHolder.liveData = ArrayList()
-        LiveListHolder.settingArrayList = ArrayList()
+        LiveListHolder.channelNamesList = ArrayList()
         showLive()
     }
 
@@ -736,6 +1085,10 @@ class PlaybackVideoFragment : VideoSupportFragment(),
         if (liveListHolder == null) {
             liveListHolder =
                 LiveListHolder(requireContext()) { liveItem ->
+                    if(this.liveItem != null){
+                        //换台，换台回来保证能播放
+                        LiveModel.reSortLastLiveItem(this.liveItem!!)
+                    }
                     playData = DlanUrlDTO()
                     playData?.apply {
                         url = liveItem.urls[0]
