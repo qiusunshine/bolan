@@ -1072,13 +1072,16 @@ class PlaybackVideoFragment : VideoSupportFragment(),
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun onLiveUrlChange(subChange: SubChange) {
-        if (liveListHolder != null && liveListHolder!!.isShowing()) {
-            liveListHolder?.hide()
+        try {
+            if (liveListHolder != null && liveListHolder!!.isShowing()) {
+                liveListHolder?.hide()
+            }
+            liveListHolder = null
+            LiveListHolder.liveData = ArrayList()
+            LiveListHolder.channelNamesList = ArrayList()
+            showLive()
+        } catch (e: Exception) {
         }
-        liveListHolder = null
-        LiveListHolder.liveData = ArrayList()
-        LiveListHolder.channelNamesList = ArrayList()
-        showLive()
     }
 
     fun showLive() {

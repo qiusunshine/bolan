@@ -14,6 +14,7 @@ import com.yanzhenjie.andserver.http.RequestBody
 import org.greenrobot.eventbus.EventBus
 import service.LiveModel
 import utils.FileUtil
+import java.io.File
 
 /**
  * 作者：By 15968
@@ -38,7 +39,11 @@ class WebController {
     @GetMapping(path = ["/api/sub/get"])
     @ResponseBody
     fun getSub(): String {
-        return PreferenceMgr.getString(App.INSTANCE, "sub", "")
+        var sub = PreferenceMgr.getString(App.INSTANCE, "sub", "")
+        if (sub.startsWith("file://") && sub.endsWith("local.txt")) {
+            sub = FileUtil.fileToString(sub.replace("file://", ""))
+        }
+        return sub
     }
 
     @PostMapping(path = ["/api/sub/set"])
@@ -47,8 +52,13 @@ class WebController {
         val data = body.string()
         return try {
             val sd = JSON.parseObject(data)
-            val url = sd.getString("url")
+            var url = sd.getString("url")
             if (StringUtil.isNotEmpty(url)) {
+                if (LiveModel.isLiveContent(url)) {
+                    val path = File(App.INSTANCE.filesDir, "local.txt").absolutePath
+                    FileUtil.stringToFile(url, path)
+                    url = "file://$path"
+                }
                 PreferenceMgr.put(App.INSTANCE, "sub", url)
                 LiveModel.cache = null
                 LiveModel.cacheUrl = null

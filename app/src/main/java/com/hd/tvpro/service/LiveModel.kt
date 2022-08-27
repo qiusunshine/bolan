@@ -27,11 +27,15 @@ object LiveModel {
     private const val cacheFile: String = "hiker-live.txt"
     const val goodFile: String = "hiker-good.txt"
 
-    suspend fun loadLocalData(consumer: (ArrayList<LiveItem>) -> Unit){
+    suspend fun loadLocalData(consumer: (ArrayList<LiveItem>) -> Unit) {
         val s = FileUtil.fileToString(cacheFile)
         if (s.isNotEmpty()) {
             parseContent(s, consumer)
         }
+    }
+
+    fun isLiveContent(url: String): Boolean {
+        return url.contains("#EXT") || url.contains("#genre#") || url.split("\n").size > 2
     }
 
     suspend fun loadData(url: String?, consumer: (ArrayList<LiveItem>) -> Unit) {

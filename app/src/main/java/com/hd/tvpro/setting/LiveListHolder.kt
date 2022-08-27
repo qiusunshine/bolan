@@ -19,6 +19,8 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import service.LiveModel
 import service.model.LiveItem
+import utils.FileUtil
+import java.io.File
 import kotlin.math.max
 import kotlin.math.min
 
@@ -39,7 +41,14 @@ class LiveListHolder constructor(
 
         fun loadBackground(context: Context) {
             try {
-                val sub = PreferenceMgr.getString(context, "sub", "")
+                var sub = PreferenceMgr.getString(context, "sub", "")
+                if (LiveModel.isLiveContent(sub)) {
+                    //弥补报错
+                    val path = File(App.INSTANCE.filesDir, "local.txt").absolutePath
+                    FileUtil.stringToFile(sub, path)
+                    sub = "file://$path"
+                    PreferenceMgr.put(App.INSTANCE, "sub", sub)
+                }
                 if (!sub.isNullOrEmpty()) {
                     GlobalScope.launch(Dispatchers.IO) {
                         LiveModel.loadData(sub) { list ->
@@ -78,10 +87,17 @@ class LiveListHolder constructor(
 
 
     fun show(anchor: View) {
-        val sub = PreferenceMgr.getString(App.INSTANCE, "sub", "")
+        var sub = PreferenceMgr.getString(App.INSTANCE, "sub", "")
         if (sub.isNullOrEmpty()) {
             ToastMgr.shortBottomCenter(anchor.context, "还没有设置直播源地址哦~")
             return
+        }
+        if (LiveModel.isLiveContent(sub)) {
+            //弥补报错
+            val path = File(App.INSTANCE.filesDir, "local.txt").absolutePath
+            FileUtil.stringToFile(sub, path)
+            sub = "file://$path"
+            PreferenceMgr.put(App.INSTANCE, "sub", sub)
         }
         if (channelView != null) {
             popupWindow?.dismiss()
@@ -302,27 +318,30 @@ class LiveListHolder constructor(
         refreshData(sub)
     }
 
-    private fun loadFinish(list: ArrayList<LiveItem>){
+    private fun loadFinish(list: ArrayList<LiveItem>) {
         GlobalScope.launch(Dispatchers.Main) {
-            if (!JSON.toJSONString(list).equals(JSON.toJSONString(liveData))) {
-                liveData.clear()
-                liveData.addAll(list)
-                groupNamesList.clear()
-                channelNamesList.clear()
-                if (list.isNotEmpty() && !list[0].children.isNullOrEmpty()) {
-                    groupNamesList.addAll(liveData.map { it.name })
-                    if (selectGroup >= liveData.size) {
-                        selectGroup = 0
+            try {
+                if (!JSON.toJSONString(list).equals(JSON.toJSONString(liveData))) {
+                    liveData.clear()
+                    liveData.addAll(list)
+                    groupNamesList.clear()
+                    channelNamesList.clear()
+                    if (list.isNotEmpty() && !list[0].children.isNullOrEmpty()) {
+                        groupNamesList.addAll(liveData.map { it.name })
+                        if (selectGroup >= liveData.size) {
+                            selectGroup = 0
+                        }
+                        channelNamesList.addAll(liveData[selectGroup].children!!.map { it.name })
+                    } else {
+                        channelNamesList.addAll(liveData.map { it.name })
                     }
-                    channelNamesList.addAll(liveData[selectGroup].children!!.map { it.name })
+                    notifySelect(true)
                 } else {
-                    channelNamesList.addAll(liveData.map { it.name })
+                    notifySelect(false)
                 }
-                notifySelect(true)
-            } else {
-                notifySelect(false)
+                channelListView?.requestFocus()
+            } catch (e: Exception) {
             }
-            channelListView?.requestFocus()
         }
     }
 

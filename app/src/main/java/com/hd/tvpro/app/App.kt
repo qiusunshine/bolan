@@ -2,8 +2,11 @@ package com.hd.tvpro.app
 
 import android.app.Application
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import androidx.multidex.MultiDex
 import com.hd.tvpro.constants.TimeConstants
+import com.hd.tvpro.util.CrashHandler
 import com.hd.tvpro.webserver.WebServer
 import com.lzy.okgo.OkGo
 import com.lzy.okgo.https.HttpsUtils
@@ -14,7 +17,10 @@ import com.pngcui.skyworth.dlna.device.ItatisticsEvent
 import com.pngcui.skyworth.dlna.util.CommonLog
 import com.pngcui.skyworth.dlna.util.LogFactory
 import com.umeng.commonsdk.UMConfigure
+import com.wanjian.cockroach.Cockroach
+import com.wanjian.cockroach.ExceptionHandler
 import okhttp3.OkHttpClient
+import timber.log.Timber
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -50,6 +56,7 @@ open class App : Application(), ItatisticsEvent {
         OkGo.getInstance().init(this).setOkHttpClient(builder.build())
             .setRetryCount(1)
             .addCommonHeaders(headers)
+        installCrashHandler()
         //crash监测
         try {
             UMConfigure.preInit(this, "616f8498e014255fcb521858", "tvpro")
@@ -94,5 +101,42 @@ open class App : Application(), ItatisticsEvent {
 
     override fun onEvent(eventID: String?, map: HashMap<String, String>?) {
         log.e("eventID = $eventID")
+    }
+
+    private fun getContext(): Context {
+        return this
+    }
+
+    private fun installCrashHandler() {
+        CrashHandler.getInstance()
+            .initDefaultHandler(getContext())
+        Cockroach.install(this, object : ExceptionHandler() {
+            override fun onUncaughtExceptionHappened(thread: Thread, throwable: Throwable?) {
+                Timber.e(throwable, "--->onUncaughtExceptionHappened:$thread<---")
+                val fileName: String = CrashHandler.getInstance().saveCatchInfo2File(throwable)
+                Handler(Looper.getMainLooper()).post {
+//                    ToastMgr.shortBottomCenter(
+//                        applicationContext,
+//                        "检测到异常崩溃信息，已记录崩溃日志"
+//                    )
+                }
+            }
+
+            override fun onBandageExceptionHappened(throwable: Throwable?) {
+                val fileName: String = CrashHandler.getInstance().saveCatchInfo2File(throwable)
+                Handler(Looper.getMainLooper()).post {
+//                    ToastMgr.shortBottomCenter(
+//                        applicationContext,
+//                        "检测到异常崩溃信息，已记录崩溃日志"
+//                    )
+                }
+            }
+
+            override fun onEnterSafeMode() {}
+            override fun onMayBeBlackScreen(e: Throwable?) {
+                val thread = Looper.getMainLooper().thread
+                CrashHandler.getInstance().crashMySelf(thread, e)
+            }
+        })
     }
 }

@@ -5,8 +5,8 @@ plugins {
 apply plugin: 'kotlin-kapt'
 apply plugin: 'com.yanzhenjie.andserver'
 def appName = "波澜投屏"
-def versionCodeNew = 33
-def versionNameNew = "2.5"
+def versionCodeNew = 35
+def versionNameNew = "2.8"
 
 android {
     compileSdkVersion 30
@@ -70,4 +70,8 @@ dependencies {
     kapt 'com.yanzhenjie.andserver:processor:2.1.9'
     implementation 'com.google.zxing:core:3.3.0'
     implementation 'javax.activation:javax.activation-api:1.2.0'
+    //crash
+    implementation 'com.github.SJJ-dot:Cockroach:2.0.1'
+    implementation 'me.weishu:free_reflection:3.0.1'
+    implementation 'com.jakewharton.timber:timber:4.7.1'
 }

@@ -20,7 +20,11 @@ object FileUtil {
      */
     fun stringToFile(text: String, fileName: String) {
         try {
-            val file = File(App.INSTANCE.cacheDir, fileName)
+            val file = if (fileName.contains(File.separator)) {
+                File(fileName)
+            } else {
+                File(App.INSTANCE.cacheDir, fileName)
+            }
             val dir: File? = file.parentFile
             if (dir != null && !dir.exists()) {
                 dir.mkdirs()
@@ -32,7 +36,11 @@ object FileUtil {
 
     fun fileToString(filePath: String): String {
         try {
-            val file = File(App.INSTANCE.cacheDir, filePath)
+            val file = if (filePath.contains(File.separator)) {
+                File(filePath)
+            } else {
+                File(App.INSTANCE.cacheDir, filePath)
+            }
             if (!file.exists()) {
                 return ""
             }
