@@ -5,7 +5,7 @@ plugins {
 apply plugin: 'kotlin-kapt'
 apply plugin: 'com.yanzhenjie.andserver'
 def appName = "波澜投屏"
-def versionCodeNew = 35
+def versionCodeNew = 37
 def versionNameNew = "2.8"
 
 android {

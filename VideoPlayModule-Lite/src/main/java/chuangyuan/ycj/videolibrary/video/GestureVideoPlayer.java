@@ -453,7 +453,27 @@ public class GestureVideoPlayer extends ExoUserPlayer {
                     deltaX = -deltaX;
                     long position = player.getCurrentPosition();
                     long duration = player.getDuration();
-                    long newPosition = (int) (position + deltaX * duration / screeHeightPixels / 3);
+                    long duration1 = Math.min(duration, 1000 * 60 * 7);
+                    long newPosition = (int) (position + deltaX * duration1 / screeHeightPixels / 3);
+                    if (Math.abs(newPosition - position) > 240000) {
+                        //大于240秒，光速滑动
+                        long p = Math.abs(newPosition - position) / 10000 + 1;
+                        duration1 = duration1 * p * 4;
+                        duration1 = Math.min(duration, duration1);
+                        newPosition = (int) (position + deltaX * duration1 / screeHeightPixels / 3);
+                    } else if (Math.abs(newPosition - position) > 120000) {
+                        //大于120秒，超速滑动
+                        long p = Math.abs(newPosition - position) / 10000 + 1;
+                        duration1 = duration1 * p * 2;
+                        duration1 = Math.min(duration, duration1);
+                        newPosition = (int) (position + deltaX * duration1 / screeHeightPixels / 3);
+                    } else if (Math.abs(newPosition - position) > 20000) {
+                        //大于20秒，快速滑动
+                        long p = Math.abs(newPosition - position) / 10000 + 1;
+                        duration1 = duration1 * p;
+                        duration1 = Math.min(duration, duration1);
+                        newPosition = (int) (position + deltaX * duration1 / screeHeightPixels / 3);
+                    }
                     if (newPosition > duration) {
                         newPosition = duration;
                     } else if (newPosition <= 0) {

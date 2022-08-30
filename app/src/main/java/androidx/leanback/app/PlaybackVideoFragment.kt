@@ -276,8 +276,8 @@ class PlaybackVideoFragment : VideoSupportFragment(),
                 Color.WHITE,
                 Color.TRANSPARENT,
                 Color.TRANSPARENT,
-                CaptionStyleCompat.EDGE_TYPE_NONE,
-                Color.WHITE,  /* typeface= */
+                CaptionStyleCompat.EDGE_TYPE_OUTLINE,
+                Color.BLACK,
                 null
             )
         )

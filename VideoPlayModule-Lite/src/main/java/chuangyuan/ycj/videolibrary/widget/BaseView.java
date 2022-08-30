@@ -308,7 +308,7 @@ abstract class BaseView extends FrameLayout {
         FrameLayout frameLayout = playerView.getContentFrameLayout();
         frameLayout.setBackgroundColor(ContextCompat.getColor(getContext(), R.color.exo_player_background_color));
         exoLoadingLayout.setVisibility(GONE);
-        exoLoadingLayout.setBackgroundColor(ContextCompat.getColor(getContext(), R.color.exo_player_background_color));
+//        exoLoadingLayout.setBackgroundColor(ContextCompat.getColor(getContext(), R.color.exo_player_background_color));
 //        exoLoadingLayout.setClickable(true);
         frameLayout.addView(mGestureControlView, frameLayout.getChildCount());
         frameLayout.addView(mActionControlView, frameLayout.getChildCount());
