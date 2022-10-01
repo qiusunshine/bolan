@@ -76,7 +76,7 @@ import master.flame.danmaku.ui.widget.DanmakuView;
  * E-Mail:yangchaojiang@outlook.com
  * Deprecated: 父类view 存放控件方法
  */
-abstract class BaseView extends FrameLayout {
+public abstract class BaseView extends FrameLayout {
     /*** The constant TAG.***/
     public static final String TAG = VideoPlayerView.class.getName();
     final Activity activity;
@@ -136,6 +136,16 @@ abstract class BaseView extends FrameLayout {
     protected boolean isLandLayout;
 
     private boolean networkNotifyUseDialog = false;
+
+    public SeekListener getSeekListener() {
+        return seekListener;
+    }
+
+    public void setSeekListener(SeekListener seekListener) {
+        this.seekListener = seekListener;
+    }
+
+    private SeekListener seekListener;
 
     /**
      * 流量提示时是否使用弹窗
@@ -305,6 +315,7 @@ abstract class BaseView extends FrameLayout {
         exoControlsBack.setId(R.id.exo_controls_back);
         exoControlsBack.setImageDrawable(ContextCompat.getDrawable(getContext(), icBackImage));
         exoControlsBack.setPadding(ss, ss, ss, ss);
+        exoControlsBack.setContentDescription("返回上一级");
         FrameLayout frameLayout = playerView.getContentFrameLayout();
         frameLayout.setBackgroundColor(ContextCompat.getColor(getContext(), R.color.exo_player_background_color));
         exoLoadingLayout.setVisibility(GONE);
@@ -338,6 +349,26 @@ abstract class BaseView extends FrameLayout {
         setSystemUiVisibility = ((Activity) getContext()).getWindow().getDecorView().getSystemUiVisibility();
 
         exoPreviewPlayBtn = playerView.findViewById(R.id.exo_preview_play);
+
+
+        getTimeBar().addListener(new TimeBar.OnScrubListener() {
+            @Override
+            public void onScrubStart(TimeBar timeBar, long position) {
+
+            }
+
+            @Override
+            public void onScrubMove(TimeBar timeBar, long position) {
+
+            }
+
+            @Override
+            public void onScrubStop(TimeBar timeBar, long position, boolean canceled) {
+                if (seekListener != null) {
+                    seekListener.seek(position);
+                }
+            }
+        });
     }
 
     /**
@@ -1428,6 +1459,9 @@ abstract class BaseView extends FrameLayout {
     public void seekFromPlayer(long pos) {
         Log.d(TAG, "xxxxxx-seekFromPlayer: ");
         resolveDanmakuSeek(pos);
+        if (seekListener != null) {
+            seekListener.seek(pos);
+        }
     }
 
     public void updateDanmuLines(int lineCount) {
@@ -1436,5 +1470,9 @@ abstract class BaseView extends FrameLayout {
             maxLinesPair.put(BaseDanmaku.TYPE_SCROLL_LR, lineCount);
             danmakuContext.setMaximumLines(maxLinesPair);
         }
+    }
+
+    public interface SeekListener {
+        void seek(long pos);
     }
 }

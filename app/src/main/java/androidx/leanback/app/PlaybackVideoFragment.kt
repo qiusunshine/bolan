@@ -24,6 +24,13 @@ import chuangyuan.ycj.videolibrary.video.GestureVideoPlayer
 import chuangyuan.ycj.videolibrary.video.GestureVideoPlayer.DoubleTapArea
 import chuangyuan.ycj.videolibrary.widget.VideoPlayerView
 import com.alibaba.fastjson.JSON
+import com.google.android.exoplayer2.Format
+import com.google.android.exoplayer2.source.TrackGroupArray
+import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
+import com.google.android.exoplayer2.trackselection.DefaultTrackSelector.SelectionOverride
+import com.google.android.exoplayer2.trackselection.MappingTrackSelector
+import com.google.android.exoplayer2.trackselection.TrackSelectionArray
+import com.google.android.exoplayer2.trackselection.TrackSelector
 import com.google.android.exoplayer2.ui.CaptionStyleCompat
 import com.google.android.exoplayer2.ui.SubtitleView
 import com.google.android.exoplayer2.util.Util
@@ -42,6 +49,7 @@ import com.hd.tvpro.video.MediaPlayerAdapter
 import com.hd.tvpro.video.MyPlaybackTransportControlGlue
 import com.hd.tvpro.video.VideoDataHelper
 import com.hd.tvpro.video.model.DlanUrlDTO
+import com.hd.tvpro.video.model.TrackHolder
 import com.pngcui.skyworth.dlna.center.DLNAGenaEventBrocastFactory
 import com.pngcui.skyworth.dlna.center.DlnaMediaModel
 import com.pngcui.skyworth.dlna.center.MediaControlBrocastFactory
@@ -125,6 +133,7 @@ class PlaybackVideoFragment : VideoSupportFragment(),
 
     /*** 音量管理  */
     private var audioManager: AudioManager? = null
+    private var trackHolder: TrackHolder? = null
 
     fun dispatchTouchEvent(ev: MotionEvent): Boolean {
         return false
@@ -174,6 +183,18 @@ class PlaybackVideoFragment : VideoSupportFragment(),
                 playerAdapter.mMediaSourceUri?.let {
                     LiveModel.addGoodUrl(requireContext(), liveItem!!.name, it)
                 }
+            }
+        }
+        playerAdapter.onTracksChangedListener = object : MediaPlayerAdapter.TracksChangedListener {
+            override fun onTracksChanged(
+                trackGroups: TrackGroupArray?,
+                trackSelections: TrackSelectionArray?
+            ) {
+                trackHolder = TrackHolder(trackGroups, trackSelections, {
+                    (playerAdapter.player?.player?.trackSelector as MappingTrackSelector?)?.currentMappedTrackInfo
+                }, {
+                    playData?.subtitle
+                })
             }
         }
         playerAdapter.setRepeatAction(PlaybackControlsRow.RepeatAction.INDEX_NONE)
@@ -1066,7 +1087,7 @@ class PlaybackVideoFragment : VideoSupportFragment(),
         if (settingHolder!!.isShowing()) {
             return
         }
-        settingHolder!!.show(videoView, playData?.url, liveItem)
+        settingHolder!!.show(videoView, playData?.url, liveItem, trackHolder)
     }
 
 
@@ -1088,7 +1109,7 @@ class PlaybackVideoFragment : VideoSupportFragment(),
         if (liveListHolder == null) {
             liveListHolder =
                 LiveListHolder(requireContext()) { liveItem ->
-                    if(this.liveItem != null){
+                    if (this.liveItem != null) {
                         //换台，换台回来保证能播放
                         LiveModel.reSortLastLiveItem(this.liveItem!!)
                     }
@@ -1139,6 +1160,34 @@ class PlaybackVideoFragment : VideoSupportFragment(),
             }
         }
         playerAdapter.seekTo(pos)
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    fun changeTrack(format: Format) {
+        val trackSelector: TrackSelector? = playerAdapter.player?.player?.trackSelector
+        if (trackSelector is DefaultTrackSelector) {
+            val mappedTrackInfo = trackSelector.currentMappedTrackInfo
+            if (mappedTrackInfo != null) {
+                for (index in 0 until mappedTrackInfo.rendererCount) {
+                    val trackGroupArray = mappedTrackInfo.getTrackGroups(index)
+                    for (i in 0 until trackGroupArray.length) {
+                        val trackGroup = trackGroupArray[i]
+                        for (j in 0 until trackGroup.length) {
+                            if (trackGroup.getFormat(j).id == format.id) {
+                                trackSelector.setParameters(
+                                    trackSelector.parameters.buildUpon()
+                                        .setSelectionOverride(
+                                            index, trackGroupArray,
+                                            SelectionOverride(i, j)
+                                        )
+                                )
+                                return
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     override fun onDestroyView() {

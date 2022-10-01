@@ -1,8 +1,11 @@
 package com.hd.tvpro.video
 
 import android.content.Context
+import android.content.res.Resources
 import android.media.MediaPlayer
+import android.os.Build
 import android.os.Handler
+import android.os.LocaleList
 import android.view.SurfaceHolder
 import androidx.leanback.media.PlaybackBaseControlGlue
 import androidx.leanback.media.PlaybackGlueHost
@@ -13,9 +16,13 @@ import chuangyuan.ycj.videolibrary.video.ExoUserPlayer
 import chuangyuan.ycj.videolibrary.video.ManualPlayer
 import chuangyuan.ycj.videolibrary.video.VideoPlayerManager
 import chuangyuan.ycj.videolibrary.widget.VideoPlayerView
+import com.google.android.exoplayer2.DefaultRenderersFactory
 import com.google.android.exoplayer2.ExoPlaybackException
 import com.google.android.exoplayer2.PlaybackException
 import com.google.android.exoplayer2.Player
+import com.google.android.exoplayer2.source.TrackGroupArray
+import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
+import com.google.android.exoplayer2.trackselection.TrackSelectionArray
 import com.google.android.exoplayer2.ui.AnimUtils
 import com.google.android.exoplayer2.ui.AspectRatioFrameLayout
 import com.google.android.exoplayer2.video.VideoSize
@@ -24,6 +31,7 @@ import com.hd.tvpro.util.StringUtil
 import java.io.*
 import java.util.*
 import kotlin.collections.ArrayList
+import kotlin.collections.HashSet
 
 
 /**
@@ -56,6 +64,13 @@ class MediaPlayerAdapter constructor(
     var playStartTask: Runnable? = null
 
     private var listeners: MutableList<Callback> = ArrayList()
+    var onTracksChangedListener: TracksChangedListener? = null
+
+    interface TracksChangedListener {
+        fun onTracksChanged(
+            trackGroups: TrackGroupArray?, trackSelections: TrackSelectionArray?
+        )
+    }
 
     private val videoPlayerSurfaceHolderCallback = object : SurfaceHolder.Callback {
         override fun surfaceCreated(surfaceHolder: SurfaceHolder) {
@@ -118,7 +133,28 @@ class MediaPlayerAdapter constructor(
             player!!.player.addListener(object : Player.Listener {
                 override fun onPlayerError(error: PlaybackException) {
                     super.onPlayerError(error)
+                    if (error.toString()
+                            .contains("MediaCodecAudioRenderer error")
+                    ) {
+                        //系统音频解码失败，试试ffmpeg
+                        if (ExoUserPlayer.getExtensionMode() != DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER) {
+                            ExoUserPlayer.setExtensionMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
+                            reStartPlayer()
+                            return
+                        } else {
+                            //已经设置过，还是失败，那就恢复
+                            ExoUserPlayer.setExtensionMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
+                        }
+                    }
                     onError(error)
+                }
+
+                override fun onTracksChanged(
+                    trackGroups: TrackGroupArray,
+                    trackSelections: TrackSelectionArray
+                ) {
+                    super.onTracksChanged(trackGroups, trackSelections)
+                    onTracksChangedListener?.onTracksChanged(trackGroups, trackSelections)
                 }
             })
 
@@ -139,6 +175,12 @@ class MediaPlayerAdapter constructor(
             player?.let {
                 it.addVideoInfoListener(videoInfoListener)
                 it.player.addListener(listener)
+                val defaultTrackSelector = player?.player?.trackSelector as DefaultTrackSelector?
+                defaultTrackSelector?.setParameters(
+                    defaultTrackSelector.parameters.buildUpon()
+                        .setPreferredAudioLanguages(*getDeviceLanguages())
+                        .setPreferredTextLanguages(*getDeviceLanguages())
+                )
             }
             val progressListener =
                 AnimUtils.UpdateProgressListener { position, bufferedPosition, duration ->
@@ -155,6 +197,21 @@ class MediaPlayerAdapter constructor(
             loadSpeed()
 //            videoView.playerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FILL
         }
+    }
+
+    fun getDeviceLanguages(): Array<String> {
+        val locales: MutableSet<String> = HashSet()
+        locales.add("zh")
+        if (Build.VERSION.SDK_INT >= 24) {
+            val localeList: LocaleList = Resources.getSystem().configuration.locales
+            for (i in 0 until localeList.size()) {
+                locales.add(localeList.get(i).isO3Language)
+            }
+        } else {
+            val locale: Locale = Resources.getSystem().configuration.locale
+            locales.add(locale.isO3Language)
+        }
+        return locales.toTypedArray()
     }
 
     private fun onError(e: Exception?) {
@@ -430,6 +487,34 @@ class MediaPlayerAdapter constructor(
                                 it.setPosition(memPos)
                             }
                         }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            } else {
+                return
+            }
+        } catch (e: IOException) {
+            e.printStackTrace()
+        }
+        //直接播放
+        player!!.startPlayer<ExoUserPlayer>()
+    }
+
+    private fun reStartPlayer() {
+        val pos = player?.currentPosition ?: 0
+        reset()
+        initPlayer()
+        try {
+            if (mMediaSourceUri != null) {
+                player?.let {
+                    try {
+                        it.setPlayUri(
+                            mMediaSourceUri!!,
+                            headers,
+                            subtitle
+                        )
+                        it.setPosition(pos)
                     } catch (e: Exception) {
                         e.printStackTrace()
                     }

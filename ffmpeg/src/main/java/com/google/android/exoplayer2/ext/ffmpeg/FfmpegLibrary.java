@@ -15,29 +15,26 @@
  */
 package com.google.android.exoplayer2.ext.ffmpeg;
 
-import android.util.Log;
-
 import androidx.annotation.Nullable;
 
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.ExoPlayerLibraryInfo;
 import com.google.android.exoplayer2.util.LibraryLoader;
-import com.google.android.exoplayer2.util.MimeTypes;
+import com.google.android.exoplayer2.util.Log;
 
-/**
- * Configures and queries the underlying native library.
- */
+/** Configures and queries the underlying native library. */
 public final class FfmpegLibrary {
 
-  private static final String TAG = "FfmpegLibrary";
   static {
     ExoPlayerLibraryInfo.registerModule("goog.exo.ffmpeg");
   }
 
-  private static final LibraryLoader LOADER =
-      new LibraryLoader("avutil", "avresample", "avcodec", "ffmpeg");
+  private static final String TAG = "FfmpegLibrary";
 
-  private static  String version;
+  private static final LibraryLoader LOADER =
+          new LibraryLoader("avutil", "swresample", "avcodec", "ffmpeg");
+
+  private static String version;
   private static int inputBufferPaddingSize = C.LENGTH_UNSET;
 
   private FfmpegLibrary() {}
@@ -53,48 +50,9 @@ public final class FfmpegLibrary {
     LOADER.setLibraries(libraries);
   }
 
-  /**
-   * Returns whether the underlying library is available, loading it if necessary.
-   */
+  /** Returns whether the underlying library is available, loading it if necessary. */
   public static boolean isAvailable() {
     return LOADER.isAvailable();
-  }
-
-  /**
-   * Returns the name of the FFmpeg decoder that could be used to decode {@code mimeType}.
-   */
-  /* package */ static String getCodecName(String mimeType) {
-    switch (mimeType) {
-      case MimeTypes.AUDIO_AAC:
-        return "aac";
-      case MimeTypes.AUDIO_MPEG:
-      case MimeTypes.AUDIO_MPEG_L1:
-      case MimeTypes.AUDIO_MPEG_L2:
-        return "mp3";
-      case MimeTypes.AUDIO_AC3:
-        return "ac3";
-      case MimeTypes.AUDIO_E_AC3:
-        return "eac3";
-      case MimeTypes.AUDIO_TRUEHD:
-        return "truehd";
-      case MimeTypes.AUDIO_DTS:
-      case MimeTypes.AUDIO_DTS_HD:
-        return "dca";
-      case MimeTypes.AUDIO_VORBIS:
-        return "vorbis";
-      case MimeTypes.AUDIO_OPUS:
-        return "opus";
-      case MimeTypes.AUDIO_AMR_NB:
-        return "amrnb";
-      case MimeTypes.AUDIO_AMR_WB:
-        return "amrwb";
-      case MimeTypes.AUDIO_FLAC:
-        return "flac";
-      case MimeTypes.AUDIO_ALAC:
-        return "alac";
-      default:
-        return null;
-    }
   }
 
   /** Returns the version of the underlying library if available, or null otherwise. */
@@ -115,12 +73,14 @@ public final class FfmpegLibrary {
    */
   public static int getInputBufferPaddingSize() {
     if (!isAvailable()) {
-      return C.LENGTH_UNSET;
+      return -1;
+    } else {
+      if (inputBufferPaddingSize == -1) {
+        inputBufferPaddingSize = ffmpegGetInputBufferPaddingSize();
+      }
+
+      return inputBufferPaddingSize;
     }
-    if (inputBufferPaddingSize == C.LENGTH_UNSET) {
-      inputBufferPaddingSize = ffmpegGetInputBufferPaddingSize();
-    }
-    return inputBufferPaddingSize;
   }
 
   /**
@@ -143,8 +103,147 @@ public final class FfmpegLibrary {
     return true;
   }
 
-  private static native String ffmpegGetVersion();
-  private static native int ffmpegGetInputBufferPaddingSize();
-  private static native boolean ffmpegHasDecoder(String codecName);
+  /**
+   * Returns the name of the FFmpeg decoder that could be used to decode the format, or {@code null}
+   * if it's unsupported.
+   */
+  @Nullable
+  static String getCodecName(String mimeType) {
+    byte var2 = -1;
+    switch(mimeType.hashCode()) {
+      case -2123537834:
+        if (mimeType.equals("audio/eac3-joc")) {
+          var2 = 6;
+        }
+        break;
+      case -1606874997:
+        if (mimeType.equals("audio/amr-wb")) {
+          var2 = 13;
+        }
+        break;
+      case -1095064472:
+        if (mimeType.equals("audio/vnd.dts")) {
+          var2 = 8;
+        }
+        break;
+      case -1003765268:
+        if (mimeType.equals("audio/vorbis")) {
+          var2 = 10;
+        }
+        break;
+      case -432837260:
+        if (mimeType.equals("audio/mpeg-L1")) {
+          var2 = 2;
+        }
+        break;
+      case -432837259:
+        if (mimeType.equals("audio/mpeg-L2")) {
+          var2 = 3;
+        }
+        break;
+      case -53558318:
+        if (mimeType.equals("audio/mp4a-latm")) {
+          var2 = 0;
+        }
+        break;
+      case 187078296:
+        if (mimeType.equals("audio/ac3")) {
+          var2 = 4;
+        }
+        break;
+      case 1503095341:
+        if (mimeType.equals("audio/3gpp")) {
+          var2 = 12;
+        }
+        break;
+      case 1504470054:
+        if (mimeType.equals("audio/alac")) {
+          var2 = 15;
+        }
+        break;
+      case 1504578661:
+        if (mimeType.equals("audio/eac3")) {
+          var2 = 5;
+        }
+        break;
+      case 1504619009:
+        if (mimeType.equals("audio/flac")) {
+          var2 = 14;
+        }
+        break;
+      case 1504831518:
+        if (mimeType.equals("audio/mpeg")) {
+          var2 = 1;
+        }
+        break;
+      case 1504891608:
+        if (mimeType.equals("audio/opus")) {
+          var2 = 11;
+        }
+        break;
+      case 1505942594:
+        if (mimeType.equals("audio/vnd.dts.hd")) {
+          var2 = 9;
+        }
+        break;
+      case 1556697186:
+        if (mimeType.equals("audio/true-hd")) {
+          var2 = 7;
+        }
+        break;
+      case 1903231877:
+        if (mimeType.equals("audio/g711-alaw")) {
+          var2 = 17;
+        }
+        break;
+      case 1903589369:
+        if (mimeType.equals("audio/g711-mlaw")) {
+          var2 = 16;
+        }
+    }
 
+    switch(var2) {
+      case 0:
+        return "aac";
+      case 1:
+      case 2:
+      case 3:
+        return "mp3";
+      case 4:
+        return "ac3";
+      case 5:
+      case 6:
+        return "eac3";
+      case 7:
+        return "truehd";
+      case 8:
+      case 9:
+        return "dca";
+      case 10:
+        return "vorbis";
+      case 11:
+        return "opus";
+      case 12:
+        return "amrnb";
+      case 13:
+        return "amrwb";
+      case 14:
+        return "flac";
+      case 15:
+        return "alac";
+      case 16:
+        return "pcm_mulaw";
+      case 17:
+        return "pcm_alaw";
+      default:
+        return null;
+    }
+  }
+
+
+  private static native String ffmpegGetVersion();
+
+  private static native int ffmpegGetInputBufferPaddingSize();
+
+  private static native boolean ffmpegHasDecoder(String var0);
 }

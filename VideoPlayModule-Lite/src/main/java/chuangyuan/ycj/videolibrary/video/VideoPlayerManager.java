@@ -44,6 +44,7 @@ public class VideoPlayerManager {
     private boolean isClick = false;
     public static float PLAY_SPEED = 1f;
     public static boolean tempFastPlay;
+    public static int FAST_PLAY_TIMES = 2;
 
     private VideoPlayerManager() {
     }
@@ -222,6 +223,7 @@ public class VideoPlayerManager {
         private long resumePosition;
         private int resumeWindow = -1;
         private View.OnClickListener onClickListener;
+        private MediaSourceBuilder.UriProxy uriProxy;
 
         public Builder(Activity activity, @PlayerType int type, @IdRes int reId) {
             this(type, (VideoPlayerView) activity.findViewById(reId));
@@ -243,6 +245,16 @@ public class VideoPlayerManager {
          */
         public Builder setVerticalFullScreen(boolean verticalFullScreen) {
             view.setVerticalFullScreen(verticalFullScreen);
+            return this;
+        }
+
+        /**
+         * 设置代理
+         *
+         * @return Builder
+         */
+        public Builder setUriProxy(MediaSourceBuilder.UriProxy uriProxy) {
+            this.uriProxy = uriProxy;
             return this;
         }
 
@@ -276,6 +288,9 @@ public class VideoPlayerManager {
                     this.mediaSourceBuilder = (MediaSourceBuilder) constructor.newInstance(context, listener);
                 } catch (Exception e) {
                     this.mediaSourceBuilder = new MediaSourceBuilder(context, listener);
+                }
+                if(this.uriProxy != null){
+                    mediaSourceBuilder.setUriProxy(uriProxy);
                 }
             }
         }

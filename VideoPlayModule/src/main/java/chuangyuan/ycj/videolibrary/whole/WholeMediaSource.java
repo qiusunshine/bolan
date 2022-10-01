@@ -103,6 +103,9 @@ public class WholeMediaSource extends MediaSourceBuilder {
 
     public MediaSource initMyMediaSource(@NonNull Uri uri) {
         int streamType = VideoPlayUtils.inferContentType(uri);
+        if (uriProxy != null) {
+            uri = uriProxy.proxy(uri, streamType);
+        }
         switch (streamType) {
             case C.TYPE_SS:
                 return new SsMediaSource.Factory(new DefaultSsChunkSource.Factory(getDataSource()), new DefaultDataSourceFactory(context, null,
@@ -124,6 +127,7 @@ public class WholeMediaSource extends MediaSourceBuilder {
                 return new HlsMediaSource.Factory(new DefaultHlsDataSourceFactory(getDataSource()))
                         .setAllowChunklessPreparation(true)
                         .setExtractorFactory(new MyHlsExtractorFactory())
+                        .setPlaylistTrackerFactory(MyHlsPlaylistTracker.FACTORY)
                         .createMediaSource(uri);
             default:
                 throw new IllegalStateException(":Unsupported type: " + streamType);

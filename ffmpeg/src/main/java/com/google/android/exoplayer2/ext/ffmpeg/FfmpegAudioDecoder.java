@@ -16,21 +16,22 @@
 package com.google.android.exoplayer2.ext.ffmpeg;
 
 import androidx.annotation.Nullable;
+
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.decoder.DecoderInputBuffer;
 import com.google.android.exoplayer2.decoder.SimpleDecoder;
 import com.google.android.exoplayer2.decoder.SimpleOutputBuffer;
 import com.google.android.exoplayer2.util.Assertions;
-import com.google.android.exoplayer2.util.MimeTypes;
 import com.google.android.exoplayer2.util.ParsableByteArray;
 import com.google.android.exoplayer2.util.Util;
+
 import java.nio.ByteBuffer;
 import java.util.List;
 
 /** FFmpeg audio decoder. */
 /* package */ final class FfmpegAudioDecoder
-    extends SimpleDecoder<DecoderInputBuffer, SimpleOutputBuffer, FfmpegDecoderException> {
+        extends SimpleDecoder<DecoderInputBuffer, SimpleOutputBuffer, FfmpegDecoderException> {
 
   // Output buffer sizes when decoding PCM mu-law streams, which is the maximum FFmpeg outputs.
   private static final int OUTPUT_BUFFER_SIZE_16BIT = 65536;
@@ -50,27 +51,27 @@ import java.util.List;
   private volatile int sampleRate;
 
   public FfmpegAudioDecoder(
-      Format format,
-      int numInputBuffers,
-      int numOutputBuffers,
-      int initialInputBufferSize,
-      boolean outputFloat)
-      throws FfmpegDecoderException {
+          Format format,
+          int numInputBuffers,
+          int numOutputBuffers,
+          int initialInputBufferSize,
+          boolean outputFloat)
+          throws FfmpegDecoderException {
     super(new DecoderInputBuffer[numInputBuffers], new SimpleOutputBuffer[numOutputBuffers]);
     if (!FfmpegLibrary.isAvailable()) {
       throw new FfmpegDecoderException("Failed to load decoder native libraries.");
     }
     Assertions.checkNotNull(format.sampleMimeType);
-    codecName = Assertions.checkNotNull(FfmpegLibrary.getCodecName(format.sampleMimeType));
-    extraData = getExtraData(format.sampleMimeType, format.initializationData);
-    encoding = outputFloat ? C.ENCODING_PCM_FLOAT : C.ENCODING_PCM_16BIT;
-    outputBufferSize = outputFloat ? OUTPUT_BUFFER_SIZE_32BIT : OUTPUT_BUFFER_SIZE_16BIT;
-    nativeContext =
-        ffmpegInitialize(codecName, extraData, outputFloat, format.sampleRate, format.channelCount);
-    if (nativeContext == 0) {
+    this.codecName = (String)Assertions.checkNotNull(FfmpegLibrary.getCodecName(format.sampleMimeType));
+    this.extraData = getExtraData(format.sampleMimeType, format.initializationData);
+    this.encoding = outputFloat ? 4 : 2;
+    this.outputBufferSize = outputFloat ? 131072 : 65536;
+    this.nativeContext = this.ffmpegInitialize(this.codecName, this.extraData, outputFloat, format.sampleRate, format.channelCount);
+    if (this.nativeContext == 0L) {
       throw new FfmpegDecoderException("Initialization failed.");
+    } else {
+      this.setInitialInputBufferSize(initialInputBufferSize);
     }
-    setInitialInputBufferSize(initialInputBufferSize);
   }
 
   @Override
@@ -81,8 +82,8 @@ import java.util.List;
   @Override
   protected DecoderInputBuffer createInputBuffer() {
     return new DecoderInputBuffer(
-        DecoderInputBuffer.BUFFER_REPLACEMENT_MODE_DIRECT,
-        FfmpegLibrary.getInputBufferPaddingSize());
+            DecoderInputBuffer.BUFFER_REPLACEMENT_MODE_DIRECT,
+            FfmpegLibrary.getInputBufferPaddingSize());
   }
 
   @Override
@@ -98,7 +99,7 @@ import java.util.List;
   @Override
   @Nullable
   protected FfmpegDecoderException decode(
-      DecoderInputBuffer inputBuffer, SimpleOutputBuffer outputBuffer, boolean reset) {
+          DecoderInputBuffer inputBuffer, SimpleOutputBuffer outputBuffer, boolean reset) {
     if (reset) {
       nativeContext = ffmpegReset(nativeContext, extraData);
       if (nativeContext == 0) {
@@ -163,72 +164,80 @@ import java.util.List;
     return encoding;
   }
 
-  /**
-   * Returns FFmpeg-compatible codec-specific initialization data ("extra data"), or {@code null} if
-   * not required.
-   */
   @Nullable
   private static byte[] getExtraData(String mimeType, List<byte[]> initializationData) {
-    switch (mimeType) {
-      case MimeTypes.AUDIO_AAC:
-      case MimeTypes.AUDIO_OPUS:
-        return initializationData.get(0);
-      case MimeTypes.AUDIO_ALAC:
+    byte var3 = -1;
+    switch(mimeType.hashCode()) {
+      case -1003765268:
+        if (mimeType.equals("audio/vorbis")) {
+          var3 = 3;
+        }
+        break;
+      case -53558318:
+        if (mimeType.equals("audio/mp4a-latm")) {
+          var3 = 0;
+        }
+        break;
+      case 1504470054:
+        if (mimeType.equals("audio/alac")) {
+          var3 = 2;
+        }
+        break;
+      case 1504891608:
+        if (mimeType.equals("audio/opus")) {
+          var3 = 1;
+        }
+    }
+
+    switch(var3) {
+      case 0:
+      case 1:
+        return (byte[])initializationData.get(0);
+      case 2:
         return getAlacExtraData(initializationData);
-      case MimeTypes.AUDIO_VORBIS:
+      case 3:
         return getVorbisExtraData(initializationData);
       default:
-        // Other codecs do not require extra data.
         return null;
     }
   }
 
   private static byte[] getAlacExtraData(List<byte[]> initializationData) {
-    // FFmpeg's ALAC decoder expects an ALAC atom, which contains the ALAC "magic cookie", as extra
-    // data. initializationData[0] contains only the magic cookie, and so we need to package it into
-    // an ALAC atom. See:
-    // https://ffmpeg.org/doxygen/0.6/alac_8c.html
-    // https://github.com/macosforge/alac/blob/master/ALACMagicCookieDescription.txt
-    byte[] magicCookie = initializationData.get(0);
+    byte[] magicCookie = (byte[])initializationData.get(0);
     int alacAtomLength = 12 + magicCookie.length;
     ByteBuffer alacAtom = ByteBuffer.allocate(alacAtomLength);
     alacAtom.putInt(alacAtomLength);
-    alacAtom.putInt(0x616c6163); // type=alac
-    alacAtom.putInt(0); // version=0, flags=0
-    alacAtom.put(magicCookie, /* offset= */ 0, magicCookie.length);
+    alacAtom.putInt(1634492771);
+    alacAtom.putInt(0);
+    alacAtom.put(magicCookie, 0, magicCookie.length);
     return alacAtom.array();
   }
 
   private static byte[] getVorbisExtraData(List<byte[]> initializationData) {
-    byte[] header0 = initializationData.get(0);
-    byte[] header1 = initializationData.get(1);
+    byte[] header0 = (byte[])initializationData.get(0);
+    byte[] header1 = (byte[])initializationData.get(1);
     byte[] extraData = new byte[header0.length + header1.length + 6];
-    extraData[0] = (byte) (header0.length >> 8);
-    extraData[1] = (byte) (header0.length & 0xFF);
+    extraData[0] = (byte)(header0.length >> 8);
+    extraData[1] = (byte)(header0.length & 255);
     System.arraycopy(header0, 0, extraData, 2, header0.length);
     extraData[header0.length + 2] = 0;
     extraData[header0.length + 3] = 0;
-    extraData[header0.length + 4] = (byte) (header1.length >> 8);
-    extraData[header0.length + 5] = (byte) (header1.length & 0xFF);
+    extraData[header0.length + 4] = (byte)(header1.length >> 8);
+    extraData[header0.length + 5] = (byte)(header1.length & 255);
     System.arraycopy(header1, 0, extraData, header0.length + 6, header1.length);
     return extraData;
   }
 
-  private native long ffmpegInitialize(
-      String codecName,
-      @Nullable byte[] extraData,
-      boolean outputFloat,
-      int rawSampleRate,
-      int rawChannelCount);
+  private native long ffmpegInitialize(String var1, @Nullable byte[] var2, boolean var3, int var4, int var5);
 
-  private native int ffmpegDecode(
-      long context, ByteBuffer inputData, int inputSize, ByteBuffer outputData, int outputSize);
+  private native int ffmpegDecode(long var1, ByteBuffer var3, int var4, ByteBuffer var5, int var6);
 
-  private native int ffmpegGetChannelCount(long context);
+  private native int ffmpegGetChannelCount(long var1);
 
-  private native int ffmpegGetSampleRate(long context);
+  private native int ffmpegGetSampleRate(long var1);
 
-  private native long ffmpegReset(long context, @Nullable byte[] extraData);
+  private native long ffmpegReset(long var1, @Nullable byte[] var3);
 
-  private native void ffmpegRelease(long context);
+  private native void ffmpegRelease(long var1);
+
 }

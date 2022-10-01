@@ -54,6 +54,9 @@ public class HttpDefaultDataSourceFactory implements DataSource.Factory {
                 userAgent = headers.get("user-Agent");
             }
         }
+        if (headers == null) {
+            headers = new HashMap<>();
+        }
         DefaultHttpDataSource.Factory httpDataSourceFactory = new DefaultHttpDataSource.Factory()
                 .setUserAgent(userAgent)
                 .setAllowCrossProtocolRedirects(true);

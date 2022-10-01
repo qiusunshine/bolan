@@ -48,7 +48,7 @@ public class MediaSourceBuilder {
     protected List<String> videoUri;
     private int loopingCount = 0;
 
-    protected Map<String ,String> headers;
+    protected Map<String, String> headers;
     protected String subtitle;
 
     public List<String> getAudioUrls() {
@@ -60,6 +60,12 @@ public class MediaSourceBuilder {
     }
 
     protected List<String> audioUrls;
+
+    protected UriProxy uriProxy;
+
+    public void setUriProxy(UriProxy uriProxy) {
+        this.uriProxy = uriProxy;
+    }
 
     /***
      * 初始化
@@ -298,6 +304,9 @@ public class MediaSourceBuilder {
      */
     public MediaSource initMediaSource(Uri uri) {
         int streamType = VideoPlayUtils.inferContentType(uri);
+        if (uriProxy != null) {
+            uri = uriProxy.proxy(uri, streamType);
+        }
         switch (streamType) {
             case C.TYPE_OTHER:
                 return new ProgressiveMediaSource.Factory(getDataSource())
@@ -323,5 +332,9 @@ public class MediaSourceBuilder {
 
     public void setSubtitle(String subtitle) {
         this.subtitle = subtitle;
+    }
+
+    public interface UriProxy {
+        Uri proxy(Uri uri, int streamType);
     }
 }

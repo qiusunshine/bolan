@@ -355,6 +355,15 @@ public final class VideoPlayerView extends BaseView {
             }
         }
     };
+
+    public void showControllerForce(){
+        if (controllerView != null) {
+            controllerView.show();
+            controllerView.setInAnim();
+            playerView.maybeShowController(true);
+        }
+    }
+
     /****
      * 动画监听
      ***/
@@ -562,7 +571,9 @@ public final class VideoPlayerView extends BaseView {
             if (isShowFulls) {
                 showFullscreenTempView(VISIBLE);
             }
-            getPlaybackControlView().setOutAnim();
+            if(!playerView.isShowControllerIndefinitely()){
+                getPlaybackControlView().setOutAnim();
+            }
             setControllerHideOnTouch(false);
         }
 

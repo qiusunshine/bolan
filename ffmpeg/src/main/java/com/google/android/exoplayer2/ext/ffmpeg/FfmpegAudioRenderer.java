@@ -60,13 +60,13 @@ public final class FfmpegAudioRenderer extends DecoderAudioRenderer<FfmpegAudioD
    * @param audioProcessors Optional {@link AudioProcessor}s that will process audio before output.
    */
   public FfmpegAudioRenderer(
-      @Nullable Handler eventHandler,
-      @Nullable AudioRendererEventListener eventListener,
-      AudioProcessor... audioProcessors) {
+          @Nullable Handler eventHandler,
+          @Nullable AudioRendererEventListener eventListener,
+          AudioProcessor... audioProcessors) {
     this(
-        eventHandler,
-        eventListener,
-        new DefaultAudioSink(/* audioCapabilities= */ null, audioProcessors));
+            eventHandler,
+            eventListener,
+            new DefaultAudioSink(/* audioCapabilities= */ null, audioProcessors));
   }
 
   /**
@@ -78,9 +78,9 @@ public final class FfmpegAudioRenderer extends DecoderAudioRenderer<FfmpegAudioD
    * @param audioSink The sink to which audio will be output.
    */
   public FfmpegAudioRenderer(
-      @Nullable Handler eventHandler,
-      @Nullable AudioRendererEventListener eventListener,
-      AudioSink audioSink) {
+          @Nullable Handler eventHandler,
+          @Nullable AudioRendererEventListener eventListener,
+          AudioSink audioSink) {
     super(eventHandler, eventListener, audioSink);
   }
 
@@ -96,7 +96,7 @@ public final class FfmpegAudioRenderer extends DecoderAudioRenderer<FfmpegAudioD
     if (!FfmpegLibrary.isAvailable() || !MimeTypes.isAudio(mimeType)) {
       return C.FORMAT_UNSUPPORTED_TYPE;
     } else if (!FfmpegLibrary.supportsFormat(mimeType)
-        || (!sinkSupportsFormat(format, C.ENCODING_PCM_16BIT)
+            || (!sinkSupportsFormat(format, C.ENCODING_PCM_16BIT)
             && !sinkSupportsFormat(format, C.ENCODING_PCM_FLOAT))) {
       return C.FORMAT_UNSUPPORTED_SUBTYPE;
     } else if (format.exoMediaCryptoType != null) {
@@ -114,13 +114,13 @@ public final class FfmpegAudioRenderer extends DecoderAudioRenderer<FfmpegAudioD
 
   @Override
   protected FfmpegAudioDecoder createDecoder(Format format, @Nullable ExoMediaCrypto mediaCrypto)
-      throws FfmpegDecoderException {
+          throws FfmpegDecoderException {
     TraceUtil.beginSection("createFfmpegAudioDecoder");
     int initialInputBufferSize =
-        format.maxInputSize != Format.NO_VALUE ? format.maxInputSize : DEFAULT_INPUT_BUFFER_SIZE;
+            format.maxInputSize != Format.NO_VALUE ? format.maxInputSize : DEFAULT_INPUT_BUFFER_SIZE;
     FfmpegAudioDecoder decoder =
-        new FfmpegAudioDecoder(
-            format, NUM_BUFFERS, NUM_BUFFERS, initialInputBufferSize, shouldOutputFloat(format));
+            new FfmpegAudioDecoder(
+                    format, NUM_BUFFERS, NUM_BUFFERS, initialInputBufferSize, shouldOutputFloat(format));
     TraceUtil.endSection();
     return decoder;
   }
@@ -129,11 +129,11 @@ public final class FfmpegAudioRenderer extends DecoderAudioRenderer<FfmpegAudioD
   public Format getOutputFormat(FfmpegAudioDecoder decoder) {
     Assertions.checkNotNull(decoder);
     return new Format.Builder()
-        .setSampleMimeType(MimeTypes.AUDIO_RAW)
-        .setChannelCount(decoder.getChannelCount())
-        .setSampleRate(decoder.getSampleRate())
-        .setPcmEncoding(decoder.getEncoding())
-        .build();
+            .setSampleMimeType(MimeTypes.AUDIO_RAW)
+            .setChannelCount(decoder.getChannelCount())
+            .setSampleRate(decoder.getSampleRate())
+            .setPcmEncoding(decoder.getEncoding())
+            .build();
   }
 
   /**
@@ -142,7 +142,7 @@ public final class FfmpegAudioRenderer extends DecoderAudioRenderer<FfmpegAudioD
    */
   private boolean sinkSupportsFormat(Format inputFormat, @C.PcmEncoding int pcmEncoding) {
     return sinkSupportsFormat(
-        Util.getPcmFormat(pcmEncoding, inputFormat.channelCount, inputFormat.sampleRate));
+            Util.getPcmFormat(pcmEncoding, inputFormat.channelCount, inputFormat.sampleRate));
   }
 
   private boolean shouldOutputFloat(Format inputFormat) {
@@ -153,9 +153,9 @@ public final class FfmpegAudioRenderer extends DecoderAudioRenderer<FfmpegAudioD
 
     @SinkFormatSupport
     int formatSupport =
-        getSinkFormatSupport(
-            Util.getPcmFormat(
-                C.ENCODING_PCM_FLOAT, inputFormat.channelCount, inputFormat.sampleRate));
+            getSinkFormatSupport(
+                    Util.getPcmFormat(
+                            C.ENCODING_PCM_FLOAT, inputFormat.channelCount, inputFormat.sampleRate));
     switch (formatSupport) {
       case SINK_FORMAT_SUPPORTED_DIRECTLY:
         // AC-3 is always 16-bit, so there's no point using floating point. Assume that it's worth

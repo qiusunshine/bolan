@@ -11,12 +11,17 @@ import android.widget.AdapterView
 import android.widget.ListView
 import android.widget.PopupWindow
 import android.widget.TextView
+import com.google.android.exoplayer2.C
+import com.google.android.exoplayer2.Format
+import com.google.android.exoplayer2.util.MimeTypes
 import com.hd.tvpro.R
 import com.hd.tvpro.constants.AppConfig
 import com.hd.tvpro.event.SwitchUrlChange
 import com.hd.tvpro.util.PreferenceMgr
 import com.hd.tvpro.util.ShareUtil
+import com.hd.tvpro.util.StringUtil
 import com.hd.tvpro.util.ToastMgr
+import com.hd.tvpro.video.model.TrackHolder
 import com.hd.tvpro.view.SelectListView
 import org.greenrobot.eventbus.EventBus
 import service.model.LiveItem
@@ -40,6 +45,8 @@ class SettingHolder constructor(
     private var mAdapterSettingValue: ListViewAdapterSettingRight? = null
     private var mSettingPos = 0
     private var settingView: View? = null
+    private var audioFormatMap = HashMap<Int, Format>()
+    private var subtitleFormatMap = HashMap<Int, Format>()
 
     enum class Option {
         SCREEN, SPEED, RESET, FINISH
@@ -49,7 +56,12 @@ class SettingHolder constructor(
         fun update(option: Option)
     }
 
-    private fun setSettingText(index: Int, nowUrl: String?, liveItem: LiveItem?) {
+    private fun setSettingText(
+        index: Int,
+        nowUrl: String?,
+        liveItem: LiveItem?,
+        trackHolder: TrackHolder?
+    ) {
         try {
             settingArrayList.clear()
             if (liveItem != null && liveItem.urls.isNotEmpty()) {
@@ -58,6 +70,80 @@ class SettingHolder constructor(
                     switchOption.mRightList.add("线路${item.index + 1}")
                 }
                 settingArrayList.add(switchOption)
+            }
+            audioFormatMap.clear()
+            subtitleFormatMap.clear()
+            if (trackHolder != null) {
+                val mappedTrackInfo = trackHolder.trackProvider()
+                if (mappedTrackInfo != null) {
+                    val audioFormats: MutableList<Format> = java.util.ArrayList()
+                    val subtitleFormats: MutableList<Format> = java.util.ArrayList()
+                    for (i in 0 until mappedTrackInfo.rendererCount) {
+                        val rendererTrackGroups = mappedTrackInfo.getTrackGroups(i)
+                        if (C.TRACK_TYPE_AUDIO == mappedTrackInfo.getRendererType(i)) { //判断是否是音轨
+                            for (groupIndex in 0 until rendererTrackGroups.length) {
+                                val trackGroup = rendererTrackGroups[groupIndex]
+                                audioFormats.add(trackGroup.getFormat(0))
+                            }
+                        } else if (C.TRACK_TYPE_TEXT == mappedTrackInfo.getRendererType(i)) { //判断是否是字幕
+                            for (groupIndex in 0 until rendererTrackGroups.length) {
+                                val trackGroup = rendererTrackGroups[groupIndex]
+                                subtitleFormats.add(trackGroup.getFormat(0))
+                            }
+                        }
+                    }
+                    if (audioFormats.isNotEmpty()) {
+                        val audioTrackOption = SettingOption("音频轨道")
+                        for (audioFormat in audioFormats) {
+                            var label =
+                                if (StringUtil.isNotEmpty(audioFormat.label)) audioFormat.label else audioFormat.language
+                            if ("zh" == label || "Chinese" == label) {
+                                label = "国语"
+                            } else if ("Cantonese" == label) {
+                                label = "粤语"
+                            } else if ("en" == label) {
+                                label = "英语"
+                            }
+                            val channel: String? = buildAudioChannelString(audioFormat)
+                            if (StringUtil.isNotEmpty(channel)) {
+                                label = "$label, $channel"
+                            }
+                            audioTrackOption.mRightList.add(label)
+                            audioFormatMap[audioTrackOption.mRightList.size - 1] = audioFormat
+                        }
+                        if (!audioTrackOption.mRightList.isNullOrEmpty() && audioTrackOption.mRightList.size > 1) {
+                            settingArrayList.add(audioTrackOption)
+                        }
+                    }
+                    if (subtitleFormats.isNotEmpty()) {
+                        val subtitleTrackOption = SettingOption("字幕轨道")
+                        for (subtitleFormat in subtitleFormats) {
+                            var label =
+                                if (StringUtil.isNotEmpty(subtitleFormat.label)) subtitleFormat.label else subtitleFormat.language
+                            if ("Chinese Simplified" == label || "Simplified" == label) {
+                                label = "中文(简体)"
+                            } else if ("Chinese Traditional" == label || "Traditional" == label) {
+                                label = "中文(繁体)"
+                            } else if ("en" == label) {
+                                label = "英语"
+                            } else if ("Chinese" == label) {
+                                label = "中文"
+                            }
+                            if (label == null || label.isEmpty()) {
+                                label = if (StringUtil.isNotEmpty(trackHolder.subtitle())) {
+                                    "外挂字幕"
+                                } else {
+                                    "无名"
+                                }
+                            }
+                            subtitleTrackOption.mRightList.add(label)
+                            subtitleFormatMap[subtitleTrackOption.mRightList.size - 1] = subtitleFormat
+                        }
+                        if (!subtitleTrackOption.mRightList.isNullOrEmpty() && subtitleTrackOption.mRightList.size > 1) {
+                            settingArrayList.add(subtitleTrackOption)
+                        }
+                    }
+                }
             }
             val screenOption = SettingOption("屏幕比例")
             screenOption.mRightList.add("自适应")
@@ -136,6 +222,56 @@ class SettingHolder constructor(
                         }
                     }
                 }
+                "音频轨道" -> {
+                    var audio: String? = null
+                    val trackSelections = trackHolder?.trackSelections
+                    if (trackSelections != null) {
+                        for (i in 0 until trackSelections.length) {
+                            if (trackSelections.get(i) != null) {
+                                for (j in 0 until trackSelections.get(i)!!.length()) {
+                                    if (MimeTypes.isAudio(
+                                            trackSelections.get(i)!!.getFormat(j).sampleMimeType
+                                        )
+                                        || trackSelections.get(i)!!
+                                            .getFormat(j).channelCount != Format.NO_VALUE
+                                    ) {
+                                        audio = trackSelections.get(i)!!.getFormat(j).id
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    for (entry in audioFormatMap) {
+                        if (audio == entry.value.id) {
+                            mAdapterSettingValue!!.setSelection(entry.key)
+                            break
+                        }
+                    }
+                }
+                "字幕轨道" -> {
+                    var text: String? = null
+                    val trackSelections = trackHolder?.trackSelections
+                    if (trackSelections != null) {
+                        for (i in 0 until trackSelections.length) {
+                            if (trackSelections.get(i) != null) {
+                                for (j in 0 until trackSelections.get(i)!!.length()) {
+                                    if (MimeTypes.isText(
+                                            trackSelections.get(i)!!.getFormat(j).sampleMimeType
+                                        )
+                                    ) {
+                                        text = trackSelections.get(i)!!.getFormat(j).id
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    for (entry in subtitleFormatMap) {
+                        if (text == entry.value.id) {
+                            mAdapterSettingValue!!.setSelection(entry.key)
+                            break
+                        }
+                    }
+                }
                 else -> {
                 }
             }
@@ -170,6 +306,24 @@ class SettingHolder constructor(
                         EventBus.getDefault().post(SwitchUrlChange(url))
                         hide()
                     }
+                    "音频轨道" -> {
+                        if (audioFormatMap.containsKey(posval)) {
+                            val format = audioFormatMap[posval]
+                            if (format != null) {
+                                EventBus.getDefault().post(format)
+                            }
+                        }
+                        hide()
+                    }
+                    "字幕轨道" -> {
+                        if (subtitleFormatMap.containsKey(posval)) {
+                            val format = subtitleFormatMap[posval]
+                            if (format != null) {
+                                EventBus.getDefault().post(format)
+                            }
+                        }
+                        hide()
+                    }
                     "关于软件" -> {
                         if (settingArrayList[pos].mRightList[posval] == "退出软件") {
                             settingUpdateListener.update(Option.FINISH)
@@ -190,7 +344,12 @@ class SettingHolder constructor(
         return ArrayList(listOf(1f, 1.2f, 1.5f, 2f, 3f, 4f))
     }
 
-    fun show(anchor: View, nowUrl: String? = null, liveItem: LiveItem? = null) {
+    fun show(
+        anchor: View,
+        nowUrl: String? = null,
+        liveItem: LiveItem? = null,
+        trackHolder: TrackHolder? = null
+    ) {
         settingView = LayoutInflater.from(context).inflate(R.layout.layout_setting, null)
         val dm = DisplayMetrics()
         val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager?
@@ -202,7 +361,7 @@ class SettingHolder constructor(
         val fontSize = width / 42
         AppConfig.fontSize = fontSize
         mSettingList = settingView!!.findViewById<View>(R.id.lv_setting_left) as SelectListView
-        setSettingText(0, nowUrl, liveItem)
+        setSettingText(0, nowUrl, liveItem, trackHolder)
         mSettingList.requestFocus()
         mAdapterSetting = ListViewAdapterSettingLeft(context, settingArrayList!!, 0)
         mSettingList.pos = 0
@@ -219,7 +378,7 @@ class SettingHolder constructor(
                 parent: AdapterView<*>?, view: View,
                 position: Int, id: Long
             ) {
-                setSettingText(position, nowUrl, liveItem)
+                setSettingText(position, nowUrl, liveItem, trackHolder)
                 mSettingPos = position
                 mAdapterSetting!!.setSelection(position)
                 mSettingList.setSelect(position, 0)
@@ -228,7 +387,7 @@ class SettingHolder constructor(
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
         mSettingList.setOnItemClickListener { adapter, v, pos, id ->
-            setSettingText(pos, nowUrl, liveItem)
+            setSettingText(pos, nowUrl, liveItem, trackHolder)
             mAdapterSetting!!.setSelection(pos)
             mSettingList.setSelect(pos, 0)
         }
@@ -256,6 +415,19 @@ class SettingHolder constructor(
     fun hide() {
         if (settingWindow != null && settingWindow!!.isShowing) {
             settingWindow!!.dismiss()
+        }
+    }
+
+    private fun buildAudioChannelString(format: Format): String? {
+        val channelCount = format.channelCount
+        return if (channelCount < 1) {
+            null
+        } else when (channelCount) {
+            1 -> "单声道"
+            2 -> "立体声"
+            6, 7 -> "5.1 环绕声"
+            8 -> "7.1 环绕声"
+            else -> "环绕声"
         }
     }
 }
